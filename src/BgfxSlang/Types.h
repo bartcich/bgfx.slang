@@ -116,6 +116,7 @@ inline std::string_view attribToString(Attrib attr) {
 
 struct Param {
   std::string Name;
+  std::string QualifiedName;
   Attrib Attr;
 };
 

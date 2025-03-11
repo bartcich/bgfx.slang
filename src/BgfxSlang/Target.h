@@ -8,7 +8,7 @@
 
 namespace BgfxSlang {
 
-enum class TargetFormat { Unknown, DirectX, SpirV };
+enum class TargetFormat { Unknown, DirectX, SpirV, OpenGL, OpenGLES };
 
 struct TargetProfile {
   TargetFormat Format;
@@ -20,10 +20,19 @@ struct TargetProfile {
     case TargetFormat::DirectX:
       return SLANG_DXBC;
     case TargetFormat::SpirV:
+    case TargetFormat::OpenGL:
+    case TargetFormat::OpenGLES:
       return SLANG_SPIRV;
     default:
       return SLANG_TARGET_UNKNOWN;
     }
+  }
+
+  [[nodiscard]] std::string_view GetProfile() const {
+    if (Format == TargetFormat::OpenGL || Format == TargetFormat::OpenGLES) {
+      return "spirv_1_3";
+    }
+    return Id;
   }
 };
 
@@ -38,7 +47,12 @@ constexpr std::array targetProfiles = {
     TargetProfile{TargetFormat::DirectX, "dx", "sm_5_0"},         TargetProfile{TargetFormat::DirectX, "sm_5_0", "sm_5_0"},
     TargetProfile{TargetFormat::SpirV, "spirv", "spirv_1_3"},     TargetProfile{TargetFormat::SpirV, "spirv_1_3", "spirv_1_3"},
     TargetProfile{TargetFormat::SpirV, "spirv_1_4", "spirv_1_4"}, TargetProfile{TargetFormat::SpirV, "spirv_1_5", "spirv_1_5"},
-    TargetProfile{TargetFormat::SpirV, "spirv_1_6", "spirv_1_6"},
+    TargetProfile{TargetFormat::SpirV, "spirv_1_6", "spirv_1_6"}, TargetProfile{TargetFormat::OpenGL, "glsl", "glsl_150"},
+    TargetProfile{TargetFormat::OpenGL, "glsl", "glsl_330"},      TargetProfile{TargetFormat::OpenGL, "glsl", "glsl_400"},
+    TargetProfile{TargetFormat::OpenGL, "glsl", "glsl_410"},      TargetProfile{TargetFormat::OpenGL, "glsl", "glsl_420"},
+    TargetProfile{TargetFormat::OpenGL, "glsl", "glsl_430"},      TargetProfile{TargetFormat::OpenGL, "glsl", "glsl_440"},
+    TargetProfile{TargetFormat::OpenGLES, "gles", "gles_100"},    TargetProfile{TargetFormat::OpenGLES, "gles", "gles_300"},
+    TargetProfile{TargetFormat::OpenGLES, "gles", "gles_310"},    TargetProfile{TargetFormat::OpenGLES, "gles", "gles_320"},
 };
 
 inline TargetProfile findProfile(std::string_view name) {
@@ -56,6 +70,10 @@ inline std::string_view GetTargetShortName(const TargetProfile &profile) {
     return "dx11";
   case TargetFormat::SpirV:
     return "spirv";
+  case TargetFormat::OpenGL:
+    return "glsl";
+  case TargetFormat::OpenGLES:
+    return "gles";
   default:
     return "unknown";
   }

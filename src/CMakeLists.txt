@@ -8,6 +8,14 @@ add_library(${PROJECT_NAME} STATIC ${SRC} ${HEADERS})
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_LIST_DIR})
 
-target_link_libraries(${PROJECT_NAME} PUBLIC slang::slang)
+if (BGFXSLANG_EXTERNAL_LIBS)
+    find_package(slang REQUIRED)
+    find_package(spirv-cross REQUIRED)
+else()
+    include(${CMAKE_CURRENT_SOURCE_DIR}/CMakeFiles/SlangLib.cmake)
+    include(${CMAKE_CURRENT_SOURCE_DIR}/CMakeFiles/SpirvCrossLib.cmake)
+endif()
 
-include(${CMAKE_CURRENT_SOURCE_DIR}/CMakeFiles/SlangLib.cmake)
+target_link_libraries(${PROJECT_NAME} PUBLIC slang::slang)
+target_link_libraries(${PROJECT_NAME} PUBLIC spirv-cross-core spirv-cross-glsl)
+

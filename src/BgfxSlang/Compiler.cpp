@@ -5,6 +5,7 @@
 #include "BgfxSlang/TextureData.h"
 #include "BgfxSlang/Types.h"
 #include "BgfxSlang/Utils/IWriter.h"
+#include "Glsl.h"
 #include <algorithm>
 #include <cstdint>
 #include <fstream>
@@ -75,14 +76,15 @@ Attrib semanticNameToAttrib(std::string_view name, uint32_t index) {
   return Attrib::Unknown;
 }
 
-Status processInOutParams(slang::VariableLayoutReflection *varLayout, std::vector<Param> &params) { // NOLINT(misc-no-recursion)
+Status processInOutParams(slang::VariableLayoutReflection *varLayout, std::vector<Param> &params, const std::string &qualifiedPrefix = "") {
   auto *paramTypeLayout = varLayout->getTypeLayout();
 
   switch (paramTypeLayout->getKind()) {
   case slang::TypeReflection::Kind::Struct: {
     for (int i = 0; i < paramTypeLayout->getFieldCount(); i++) {
       auto *field = paramTypeLayout->getFieldByIndex(i);
-      auto status = processInOutParams(field, params);
+      auto prefix = varLayout->getName() != nullptr ? qualifiedPrefix + varLayout->getName() + "." : "";
+      auto status = processInOutParams(field, params, prefix);
       if (!status.IsOk()) {
         return status;
       }
@@ -96,7 +98,7 @@ Status processInOutParams(slang::VariableLayoutReflection *varLayout, std::vecto
       return Status{StatusCode::Error, "Unsupported semantic name: " + std::string(varLayout->getSemanticName())};
     }
     if (attribType != Attrib::Internal) {
-      params.push_back(Param{varLayout->getName(), attribType});
+      params.push_back(Param{varLayout->getName(), qualifiedPrefix + varLayout->getName(), attribType});
     }
     return Status{};
   }
@@ -292,7 +294,7 @@ Status Compiler::createSession(slang::ISession **outSession, int64_t entryPointI
     slang::TargetDesc targetDesc;
     TargetSettings &target = targets[targetIdx];
     targetDesc.format = target.Profile.GetSlangTarget();
-    targetDesc.profile = slangGlobalSession->findProfile(target.Profile.Id.data());
+    targetDesc.profile = slangGlobalSession->findProfile(target.Profile.GetProfile().data());
     optionsPerTarget.push_back(target.GetCompilerOptions(entryPoint.Stage));
     targetDesc.compilerOptionEntryCount = optionsPerTarget.back().size();
     targetDesc.compilerOptionEntries = optionsPerTarget.back().data();
@@ -461,6 +463,8 @@ Status Compiler::Compile(int64_t entryPointIdx, int64_t targetIdx, IWriter &writ
     appendWarnings(warnings, diagnostics);
   }
 
+  std::string source(reinterpret_cast<const char *>(code->getBufferPointer()), code->getBufferSize());
+
   auto *entryPointLayout = layout->getEntryPointByIndex(processedEntryPointIdx);
   auto stage = entryPointLayout->getStage();
   auto magic = GetMagic(stage);
@@ -491,6 +495,10 @@ Status Compiler::Compile(int64_t entryPointIdx, int64_t targetIdx, IWriter &writ
     writer.Write(uniform.TexComponent);
     writer.Write(uniform.TexDimension);
     writer.Write(uniform.TexFormat);
+  }
+
+  if (target.Format == TargetFormat::OpenGL) {
+    return writeGlslShader(linkedProgram, target, processedEntryPointIdx, processedTargetIndex, writer, inputParams, uniforms);
   }
 
   uint32_t codeSize = code->getBufferSize();

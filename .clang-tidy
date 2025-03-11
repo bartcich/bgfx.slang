@@ -17,7 +17,8 @@ Checks: >-
   -readability-uppercase-literal-suffix,
   -readability-convert-member-functions-to-static,
   -readability-identifier-length,
-  -misc-const-correctness
+  -misc-const-correctness,
+  -misc-no-recursion
 
 HeaderFilterRegex: .*
 WarningsAsErrors: ""
