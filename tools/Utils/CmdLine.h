@@ -5,7 +5,7 @@
 
 namespace BgfxSlangCmd {
 
-enum class TokenType { Input, Output, Target, Verbose };
+enum class TokenType { Input, Output, Target, Verbose, Bin2C };
 struct Token {
   TokenType Type;
   std::string_view Short;
@@ -17,6 +17,7 @@ constexpr std::array tokens = {
     Token{TokenType::Output, "-o", "--output"},
     Token{TokenType::Target, "-t", "--target"},
     Token{TokenType::Verbose, "-v", "--verbose"},
+    Token{TokenType::Bin2C, "-b", "--bin2c"},
 };
 
 struct TokenValues {
@@ -37,7 +38,7 @@ public:
 
   [[nodiscard]] std::string_view GetOne(TokenType type, std::string_view defaultValue = "") const {
     const auto *value = find(type);
-    return value != nullptr ? value->Values.front() : defaultValue;
+    return value != nullptr && !value->Values.empty() ? value->Values.front() : defaultValue;
   }
 
   [[nodiscard]] const std::vector<std::string_view> *Get(TokenType type) const {

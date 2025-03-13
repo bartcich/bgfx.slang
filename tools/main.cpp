@@ -2,6 +2,7 @@
 #include "BgfxSlang/EntryPoint.h"
 #include "BgfxSlang/Status.h"
 #include "BgfxSlang/Target.h"
+#include "BgfxSlang/Utils/Bin2cWriter.h"
 #include "BgfxSlang/Utils/ConsoleWriter.h"
 #include "BgfxSlang/Utils/FileWriter.h"
 #include "Utils/CmdLine.h"
@@ -10,6 +11,7 @@
 #include <cstdlib>
 #include <filesystem>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <string_view>
 
@@ -64,6 +66,12 @@ int main(int argc, char **argv) {
 
   auto targetCount = cmdLine.GetCount(BgfxSlangCmd::TokenType::Target);
   auto verbose = cmdLine.Has(BgfxSlangCmd::TokenType::Verbose);
+  auto bin2C = cmdLine.Has(BgfxSlangCmd::TokenType::Bin2C);
+
+  std::string_view bin2CVarFormat = "{{name}}_{{stage}}_{{target}}";
+  if (cmdLine.Has(BgfxSlangCmd::TokenType::Bin2C)) {
+    bin2CVarFormat = cmdLine.GetOne(BgfxSlangCmd::TokenType::Bin2C, bin2CVarFormat);
+  }
 
   BgfxSlang::Compiler compiler;
   BgfxSlang::ConsoleWriter writer;
@@ -99,14 +107,19 @@ int main(int argc, char **argv) {
       printLog(verbose, "Compiling entry point '" + entryPoint.Name + "' (" + std::string(BgfxSlang::getStageShortName(entryPoint.Stage)) +
                             ") to: " + outputPath);
 
-      BgfxSlang::FileWriter writer;
+      std::unique_ptr<BgfxSlang::FileWriter> writer;
+      if (bin2C) {
+        writer = std::make_unique<BgfxSlang::Bin2cWriter>(formatOutputPath(bin2CVarFormat, inputFilePath, target, entryPoint));
+      } else {
+        writer = std::make_unique<BgfxSlang::FileWriter>();
+      }
       std::filesystem::create_directory(std::filesystem::path{outputPath}.parent_path());
-      if (!writer.Open(outputPath)) {
+      if (!writer->Open(outputPath)) {
         std::cerr << "Failed to open file: " << outputPath << '\n';
         exit(1);
       }
-      verifyStatus(compiler.Compile(entryPoint.Idx, targetIdx, writer));
-      writer.Close();
+      verifyStatus(compiler.Compile(entryPoint.Idx, targetIdx, *writer));
+      writer->Close();
     }
   }
 }

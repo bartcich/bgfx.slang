@@ -18,7 +18,7 @@ public:
     }
   };
 
-  inline bool Open(const std::string_view &path) {
+  inline bool virtual Open(const std::string_view &path) {
 
     if (file.is_open()) {
       return false;
@@ -29,7 +29,7 @@ public:
     return file.is_open();
   };
 
-  inline void Close() { file.close(); }
+  inline void virtual Close() { file.close(); }
 
 private:
   void write(const void *data, size_t size) override { file.write(static_cast<const char *>(data), size); }
