@@ -319,6 +319,15 @@ Status Compiler::createSession(slang::ISession **outSession, int64_t entryPointI
   sessionDesc.targetCount = targetDescs.size();
   sessionDesc.targets = targetDescs.data();
 
+  std::vector<const char *> modulesSearchPathsChar;
+  modulesSearchPathsChar.reserve(modulesSearchPaths.size());
+  for (const auto &path : modulesSearchPaths) {
+    modulesSearchPathsChar.push_back(path.c_str());
+  }
+
+  sessionDesc.searchPathCount = modulesSearchPaths.size();
+  sessionDesc.searchPaths = modulesSearchPathsChar.data();
+
   slangGlobalSession->createSession(sessionDesc, outSession);
 
   return Status{};

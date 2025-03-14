@@ -76,6 +76,12 @@ int main(int argc, char **argv) {
   BgfxSlang::Compiler compiler;
   BgfxSlang::ConsoleWriter writer;
 
+  if (cmdLine.Has(BgfxSlangCmd::TokenType::Include)) {
+    for (const auto includePath : *cmdLine.Get(BgfxSlangCmd::TokenType::Include)) {
+      compiler.AddModulesSearchPath(includePath);
+    }
+  }
+
   if (verbose) {
     // job.SetVerboseWriter(&writer);
     compiler.SetVerboseWriter(&writer);

@@ -31,6 +31,8 @@ public:
   Status AddEntryPoint(std::string_view name);
   Status AddEntryPoint(StageType stage);
 
+  void AddModulesSearchPath(std::string_view path) { modulesSearchPaths.emplace_back(path); }
+
   Status Compile(int64_t entryPointIdx, int64_t targetIdx, IWriter &writer);
 
   [[nodiscard]] inline TargetProfile GetTarget(int64_t idx) const { return targets.at(idx).Profile; }
@@ -43,6 +45,7 @@ public:
 private:
   IWriter *verboseWriter = nullptr;
   std::vector<TargetSettings> targets;
+  std::vector<std::string> modulesSearchPaths;
   Slang::ComPtr<slang::IGlobalSession> slangGlobalSession;
   Slang::ComPtr<slang::IBlob> diagnostics;
 
