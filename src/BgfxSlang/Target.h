@@ -44,15 +44,16 @@ struct TargetSettings {
 };
 
 constexpr std::array targetProfiles = {
-    TargetProfile{TargetFormat::DirectX, "dx", "sm_5_0"},         TargetProfile{TargetFormat::DirectX, "sm_5_0", "sm_5_0"},
-    TargetProfile{TargetFormat::SpirV, "spirv", "spirv_1_3"},     TargetProfile{TargetFormat::SpirV, "spirv_1_3", "spirv_1_3"},
-    TargetProfile{TargetFormat::SpirV, "spirv_1_4", "spirv_1_4"}, TargetProfile{TargetFormat::SpirV, "spirv_1_5", "spirv_1_5"},
-    TargetProfile{TargetFormat::SpirV, "spirv_1_6", "spirv_1_6"}, TargetProfile{TargetFormat::OpenGL, "glsl", "glsl_150"},
-    TargetProfile{TargetFormat::OpenGL, "glsl", "glsl_330"},      TargetProfile{TargetFormat::OpenGL, "glsl", "glsl_400"},
-    TargetProfile{TargetFormat::OpenGL, "glsl", "glsl_410"},      TargetProfile{TargetFormat::OpenGL, "glsl", "glsl_420"},
-    TargetProfile{TargetFormat::OpenGL, "glsl", "glsl_430"},      TargetProfile{TargetFormat::OpenGL, "glsl", "glsl_440"},
-    TargetProfile{TargetFormat::OpenGLES, "gles", "gles_100"},    TargetProfile{TargetFormat::OpenGLES, "gles", "gles_300"},
-    TargetProfile{TargetFormat::OpenGLES, "gles", "gles_310"},    TargetProfile{TargetFormat::OpenGLES, "gles", "gles_320"},
+    TargetProfile{TargetFormat::DirectX, "dx", "sm_5_0"},          TargetProfile{TargetFormat::DirectX, "sm_5_0", "sm_5_0"},
+    TargetProfile{TargetFormat::SpirV, "spirv", "spirv_1_3"},      TargetProfile{TargetFormat::SpirV, "spirv_1_3", "spirv_1_3"},
+    TargetProfile{TargetFormat::SpirV, "spirv_1_4", "spirv_1_4"},  TargetProfile{TargetFormat::SpirV, "spirv_1_5", "spirv_1_5"},
+    TargetProfile{TargetFormat::SpirV, "spirv_1_6", "spirv_1_6"},  TargetProfile{TargetFormat::OpenGL, "glsl", "glsl_150"},
+    TargetProfile{TargetFormat::OpenGL, "glsl_150", "glsl_150"},   TargetProfile{TargetFormat::OpenGL, "glsl_330", "glsl_330"},
+    TargetProfile{TargetFormat::OpenGL, "glsl_400", "glsl_400"},   TargetProfile{TargetFormat::OpenGL, "glsl_410", "glsl_410"},
+    TargetProfile{TargetFormat::OpenGL, "glsl_420", "glsl_420"},   TargetProfile{TargetFormat::OpenGL, "glsl_430", "glsl_430"},
+    TargetProfile{TargetFormat::OpenGL, "glsl_440", "glsl_440"},   TargetProfile{TargetFormat::OpenGLES, "gles_100", "gles_100"},
+    TargetProfile{TargetFormat::OpenGLES, "gles", "gles_300"},     TargetProfile{TargetFormat::OpenGLES, "gles_300", "gles_300"},
+    TargetProfile{TargetFormat::OpenGLES, "gles_310", "gles_310"}, TargetProfile{TargetFormat::OpenGLES, "gles_320", "gles_320"},
 };
 
 inline TargetProfile findProfile(std::string_view name) {

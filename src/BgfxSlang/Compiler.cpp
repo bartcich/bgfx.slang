@@ -26,6 +26,10 @@ constexpr uint32_t shift2Bytes = 16;
 constexpr uint32_t shift3Bytes = 24;
 
 constexpr uint8_t kUniformFragmentBit = 0x10;
+constexpr uint8_t kUniformReadOnlyBit = 0x40;
+
+constexpr uint16_t storageBufferDesrcriptor = 0x0007;
+constexpr uint16_t storageImageDescriptor = 0x0003;
 
 constexpr uint8_t version = 11;
 
@@ -70,7 +74,7 @@ Attrib semanticNameToAttrib(std::string_view name, uint32_t index) {
   if (name == "TEXCOORD") {
     return static_cast<Attrib>(static_cast<int>(Attrib::TexCoord0) + index);
   }
-  if (name == "SV_POSITION" || name == "SV_TARGET") {
+  if (name.starts_with("SV_")) {
     return Attrib::Internal;
   }
   return Attrib::Unknown;
@@ -123,6 +127,10 @@ Status getInputParams(slang::EntryPointReflection *entryPoint, std::vector<Param
 Status getOutputParams(slang::EntryPointReflection *entryPoint, std::vector<Param> &params) {
   auto *resultVarLayout = entryPoint->getResultVarLayout();
 
+  if (resultVarLayout == nullptr) {
+    return Status{};
+  }
+
   return processInOutParams(resultVarLayout, params);
 }
 
@@ -141,9 +149,14 @@ uint32_t hashParams(const std::vector<Param> &params) {
 
 bool isSkippableUniform(slang::TypeReflection *type) { return type->getKind() == slang::TypeReflection::Kind::SamplerState; }
 
-UniformType convertUniformType(slang::TypeReflection *type) {
+UniformType convertUniformType(slang::TypeReflection *type, bool isCompute) {
   switch (type->getKind()) {
   case slang::TypeReflection::Kind::Resource:
+    if (isCompute || type->getResourceShape() == SlangResourceShape::SLANG_STRUCTURED_BUFFER) {
+      return type->getResourceAccess() == SlangResourceAccess::SLANG_RESOURCE_ACCESS_READ
+                 ? static_cast<UniformType>(kUniformReadOnlyBit | static_cast<uint8_t>(UniformType::End))
+                 : UniformType::End;
+    }
     return UniformType::Sampler;
   case slang::TypeReflection::Kind::Vector:
     return UniformType::Vec4;
@@ -154,7 +167,7 @@ UniformType convertUniformType(slang::TypeReflection *type) {
   }
 }
 
-Status getUniforms(slang::ProgramLayout *programLayout, std::vector<Uniform> &uniforms, uint16_t &uniformBufferSize) {
+Status getUniforms(slang::ProgramLayout *programLayout, bool isCompute, std::vector<Uniform> &uniforms, uint16_t &uniformBufferSize) {
   auto *globalVarLayout = programLayout->getGlobalParamsVarLayout();
   auto *scopeTypeLayout = globalVarLayout->getTypeLayout();
 
@@ -188,20 +201,35 @@ Status getUniforms(slang::ProgramLayout *programLayout, std::vector<Uniform> &un
       continue;
     }
 
-    auto convertedType = convertUniformType(elementType);
+    auto convertedType = convertUniformType(elementType, isCompute);
     if (convertedType == UniformType::Unknown) {
       return Status{StatusCode::Error, "Unsupported uniform type for param " + std::string(param->getName())};
     }
 
-    bool isSampler = convertedType == UniformType::Sampler;
+    bool isBuffer = elementType->getKind() == slang::TypeReflection::Kind::Resource &&
+                    elementType->getResourceShape() == SlangResourceShape::SLANG_STRUCTURED_BUFFER;
+    bool isSampler = convertedType == UniformType::Sampler && !isCompute;
+    bool isStorageImage = elementType->getKind() == slang::TypeReflection::Kind::Resource && !isBuffer && !isCompute;
 
     uniform.Name = param->getName();
     uniform.Type = convertedType;
     uniform.Count = isArray ? paramType->getElementCount() : 1;
-    uniform.RegIndex = isSampler ? param->getBindingIndex() : param->getOffset();
-    uniform.RegCount = (isSampler ? 1 : elementType->getRowCount()) * uniform.Count;
 
     if (isSampler) {
+      uniform.RegIndex = param->getBindingIndex();
+      uniform.RegCount = uniform.Count;
+    } else if (isBuffer) {
+      uniform.RegIndex = param->getBindingIndex();
+      uniform.RegCount = storageBufferDesrcriptor;
+    } else if (isStorageImage) {
+      uniform.RegIndex = param->getBindingIndex();
+      uniform.RegCount = storageImageDescriptor;
+    } else {
+      uniform.RegIndex = param->getOffset();
+      uniform.RegCount = elementType->getRowCount() * uniform.Count;
+    }
+
+    if (isSampler || isStorageImage) {
       uniform.TexComponent = convertTextureComponentType(param->getType());
       uniform.TexDimension = convertTextureDimension(param->getType());
       uniform.TexFormat = convertTextureFormat(elementsTypeLayout, textureIndex++);
@@ -433,6 +461,9 @@ Status Compiler::Compile(int64_t entryPointIdx, int64_t targetIdx, IWriter &writ
 
   Slang::ComPtr<ISlangBlob> hash;
 
+  auto *entryPointLayout = layout->getEntryPointByIndex(processedEntryPointIdx);
+  auto stage = entryPointLayout->getStage();
+
   std::vector<Param> inputParams;
   std::vector<Param> outputParams;
   if (auto status = getInputParams(layout->getEntryPointByIndex(processedEntryPointIdx), inputParams); !status.IsOk()) {
@@ -443,7 +474,7 @@ Status Compiler::Compile(int64_t entryPointIdx, int64_t targetIdx, IWriter &writ
   }
   std::vector<Uniform> uniforms;
   uint16_t uniformBufferSize = 0;
-  if (auto status = getUniforms(layout, uniforms, uniformBufferSize); !status.IsOk()) {
+  if (auto status = getUniforms(layout, stage == SLANG_STAGE_COMPUTE, uniforms, uniformBufferSize); !status.IsOk()) {
     return status;
   }
 
@@ -474,8 +505,6 @@ Status Compiler::Compile(int64_t entryPointIdx, int64_t targetIdx, IWriter &writ
 
   std::string source(reinterpret_cast<const char *>(code->getBufferPointer()), code->getBufferSize());
 
-  auto *entryPointLayout = layout->getEntryPointByIndex(processedEntryPointIdx);
-  auto stage = entryPointLayout->getStage();
   auto magic = GetMagic(stage);
   if (magic == 0) {
     return Status{StatusCode::Error, "Unsupported stage"};
@@ -491,6 +520,9 @@ Status Compiler::Compile(int64_t entryPointIdx, int64_t targetIdx, IWriter &writ
   writer.Write<uint16_t>(uniforms.size());
 
   const uint32_t fragmentBit = stage == SLANG_STAGE_FRAGMENT ? kUniformFragmentBit : 0;
+
+  slang::IMetadata *entryPointMetadata;
+  linkedProgram->getEntryPointMetadata(processedEntryPointIdx, processedTargetIndex, &entryPointMetadata);
 
   for (const auto &uniform : uniforms) {
     uint8_t nameSize = uniform.Name.size();

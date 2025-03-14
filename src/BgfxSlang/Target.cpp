@@ -22,15 +22,15 @@ constexpr int vulkanSamplerShift = 18;
 std::vector<slang::CompilerOptionEntry> TargetSettings::GetCompilerOptions(StageType stage) const {
 
   std::vector<slang::CompilerOptionEntry> options(CompilerOptions.begin(), CompilerOptions.end());
-  options.push_back(slang::CompilerOptionEntry{slang::CompilerOptionName::Optimization, {.intValue0 = 3}});
+  options.push_back(slang::CompilerOptionEntry{slang::CompilerOptionName::Optimization, {.intValue0 = 1}});
 
   switch (Profile.Format) {
   case TargetFormat::DirectX:
+  case TargetFormat::OpenGL:
+  case TargetFormat::OpenGLES:
     return options;
     break;
   case TargetFormat::SpirV:
-  case TargetFormat::OpenGL:
-  case TargetFormat::OpenGLES:
     options.push_back(
         slang::CompilerOptionEntry{slang::CompilerOptionName::VulkanBindShiftAll,
                                    {.intValue0 = slangShiftKindConstantBuffer,
@@ -40,7 +40,7 @@ std::vector<slang::CompilerOptionEntry> TargetSettings::GetCompilerOptions(Stage
     options.push_back(slang::CompilerOptionEntry{slang::CompilerOptionName::VulkanBindShiftAll,
                                                  {.intValue0 = slangShiftKindShaderResource, .intValue1 = vulkanTextureShift}});
     options.push_back(slang::CompilerOptionEntry{slang::CompilerOptionName::VulkanBindShiftAll,
-                                                 {.intValue0 = slangShiftKindUnorderedAccess, .intValue1 = 2}});
+                                                 {.intValue0 = slangShiftKindUnorderedAccess, .intValue1 = vulkanTextureShift}});
 
     return options;
   default:
