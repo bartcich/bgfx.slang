@@ -1,6 +1,6 @@
 #pragma once
 
-#include "BgfxSlang/Target.h"
+#include "Target.h"
 #include "TextureData.h"
 #include <array>
 #include <cstddef>

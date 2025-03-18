@@ -1,7 +1,7 @@
-#include "BgfxSlang/Status.h"
-#include "BgfxSlang/Target.h"
-#include "BgfxSlang/Types.h"
-#include "BgfxSlang/Utils/IWriter.h"
+#include "Status.h"
+#include "Target.h"
+#include "Types.h"
+#include "Utils/IWriter.h"
 #include "spirv.hpp"
 #include "spirv_cross.hpp"
 #include <array>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "BgfxSlang/Utils/FileWriter.h"
+#include "FileWriter.h"
 #include <cctype>
 #include <cstddef>
 #include <cstdint>
@@ -15,7 +15,7 @@ namespace BgfxSlang {
 
 class Bin2cWriter : public FileWriter {
 public:
-  explicit Bin2cWriter(std::string_view varName) : varName(varName){};
+  explicit Bin2cWriter(std::string_view varName) : varName(varName) {};
   ~Bin2cWriter() override {
     if (file.is_open()) {
       Close();

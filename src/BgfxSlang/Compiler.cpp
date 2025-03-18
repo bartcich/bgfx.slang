@@ -1,11 +1,11 @@
 #include "Compiler.h"
-#include "BgfxSlang/EntryPoint.h"
-#include "BgfxSlang/Status.h"
-#include "BgfxSlang/Target.h"
-#include "BgfxSlang/TextureData.h"
-#include "BgfxSlang/Types.h"
-#include "BgfxSlang/Utils/IWriter.h"
+#include "EntryPoint.h"
 #include "Glsl.h"
+#include "Status.h"
+#include "Target.h"
+#include "TextureData.h"
+#include "Types.h"
+#include "Utils/IWriter.h"
 #include <algorithm>
 #include <cstdint>
 #include <fstream>

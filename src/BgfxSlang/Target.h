@@ -1,6 +1,6 @@
 #pragma once
 
-#include "BgfxSlang/EntryPoint.h"
+#include "EntryPoint.h"
 #include <array>
 #include <slang.h>
 #include <string_view>

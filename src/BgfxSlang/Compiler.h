@@ -1,9 +1,9 @@
 #pragma once
 
-#include "BgfxSlang/EntryPoint.h"
-#include "BgfxSlang/Status.h"
-#include "BgfxSlang/Target.h"
-#include "BgfxSlang/Utils/IWriter.h"
+#include "EntryPoint.h"
+#include "Status.h"
+#include "Target.h"
+#include "Utils/IWriter.h"
 #include <cstdint>
 #include <slang-com-ptr.h>
 #include <slang.h>

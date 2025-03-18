@@ -1,5 +1,5 @@
 #include "Target.h"
-#include "BgfxSlang/EntryPoint.h"
+#include "EntryPoint.h"
 #include <slang.h>
 #include <vector>
 
