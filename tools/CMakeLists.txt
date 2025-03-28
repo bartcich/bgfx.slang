@@ -11,4 +11,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE bgfx-slang)
 file(GLOB dlls "${slang_SOURCE_DIR}/bin/*.dll")
 file(INSTALL ${dlls} DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 
-install(TARGETS ${PROJECT_NAME} DESTINATION bin)
+if (BGFXSLANG_INSTALL)
+  install(TARGETS ${PROJECT_NAME} DESTINATION "${CMAKE_INSTALL_BINDIR}")
+  install(FILES ${CMAKE_SOURCE_DIR}/cmake/bgfx-slang-toolUtils.cmake DESTINATION share/bgfx-slang)
+endif()
