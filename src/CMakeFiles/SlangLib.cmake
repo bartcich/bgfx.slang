@@ -1,11 +1,11 @@
 include(FetchContent)
 
-set(SLANG_VERSION 2025.4)
+set(SLANG_VERSION 2025.6.3)
 
 FetchContent_Declare(
     slang
-    URL https://github.com/shader-slang/slang/releases/download/v${SLANG_VERSION}/slang-${SLANG_VERSION}-windows-x86_64.tar.gz
-    URL_HASH SHA256=bf124e82af5aa6d324e74b02a89a41c61d435493c5c4ac3be0b21e865038d915
+    URL https://github.com/shader-slang/slang/releases/download/v${SLANG_VERSION}/slang-${SLANG_VERSION}-windows-x86_64.zip
+    URL_HASH SHA512=95a647ae4c446cb8227d1bbddc013549a41b22c8de561c5938f5e56182de86e8108852a0f066bdc16bfcb1339be048907410fc1ece5939d556d58c95999667ed
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 
