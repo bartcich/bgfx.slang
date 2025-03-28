@@ -166,11 +166,18 @@ Status writeGlslShader(Slang::ComPtr<slang::IComponentType> &linkedProgram, Targ
       auto memberType = glsl.get_type(type.member_types[i]);
       if (memberType.op == spv::OpTypeStruct) {
         std::string pattern = bufferName + "\\.";
-        pattern += memberName + R"(\.data(\[\d+\])?(?:\.data(\[\d+\])?)?)";
+        pattern += memberName + R"(\.data(\[\w+\])?(?:\.data(\[\w+\])?)?)";
         std::regex re(pattern);
         std::string format = memberName + "$1$2";
         source = std::regex_replace(source, re, format);
       }
+
+      // just vec4 etc
+      std::string pattern = bufferName + "\\.";
+      pattern += memberName;
+      std::regex re(pattern);
+      const std::string &format = memberName;
+      source = std::regex_replace(source, re, format);
     }
 
     std::string targetReplace = "uniform " + bufferTypeName + " ";

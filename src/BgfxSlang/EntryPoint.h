@@ -50,4 +50,17 @@ inline std::string_view getStageShortName(StageType stage) {
   }
 }
 
+inline StageType getStageTypeFromShortName(std::string_view shortName) {
+  if (shortName == "vs") {
+    return StageType::Vertex;
+  }
+  if (shortName == "fs") {
+    return StageType::Fragment;
+  }
+  if (shortName == "cs") {
+    return StageType::Compute;
+  }
+  return StageType::Unknown;
+}
+
 } // namespace BgfxSlang

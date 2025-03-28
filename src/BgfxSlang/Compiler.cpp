@@ -97,6 +97,9 @@ Status processInOutParams(slang::VariableLayoutReflection *varLayout, std::vecto
   }
   case slang::TypeReflection::Kind::Vector:
   case slang::TypeReflection::Kind::Scalar: {
+    if (varLayout->getSemanticName() == nullptr) {
+      return Status{StatusCode::Error, "No semantic name specified for var: " + std::string(varLayout->getName())};
+    }
     auto attribType = semanticNameToAttrib(varLayout->getSemanticName(), varLayout->getSemanticIndex());
     if (attribType == Attrib::Unknown) {
       return Status{StatusCode::Error, "Unsupported semantic name: " + std::string(varLayout->getSemanticName())};
@@ -318,7 +321,7 @@ Status Compiler::createSession(slang::ISession **outSession, int64_t entryPointI
   std::vector<slang::TargetDesc> targetDescs;
 
   if (targetIdx > -1) {
-    EntryPoint entryPoint = entryPointIdx > -1 ? entryPointsSource()[entryPointIdx] : EntryPoint{};
+    EntryPoint entryPoint = entryPointIdx > -1 ? availableEntryPoints[entryPointIdx] : EntryPoint{};
     slang::TargetDesc targetDesc;
     TargetSettings &target = targets[targetIdx];
     targetDesc.format = target.Profile.GetSlangTarget();
@@ -381,7 +384,7 @@ Status Compiler::processProgram(std::string_view code, slang::IComponentType **o
 
   if (entryPointIdx > -1) {
     Slang::ComPtr<slang::IEntryPoint> entryPoint;
-    module->getDefinedEntryPoint(entryPointsSource()[entryPointIdx].Idx, entryPoint.writeRef());
+    module->getDefinedEntryPoint(availableEntryPoints[entryPointIdx].Idx, entryPoint.writeRef());
     components.push_back(entryPoint);
 
   } else {

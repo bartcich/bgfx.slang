@@ -5,7 +5,7 @@
 
 namespace BgfxSlangCmd {
 
-enum class TokenType { Input, Output, Target, Verbose, Bin2C, Include };
+enum class TokenType { Input, Output, Target, Verbose, Bin2C, Include, StageType };
 struct Token {
   TokenType Type;
   std::string_view Short;
@@ -19,6 +19,7 @@ constexpr std::array tokens = {
     Token{TokenType::Verbose, "-v", "--verbose"},
     Token{TokenType::Bin2C, "-b", "--bin2c"},
     Token{TokenType::Include, "-i", "--include"},
+    Token{TokenType::StageType, "-s", "--stage"},
 };
 
 struct TokenValues {

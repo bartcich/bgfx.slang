@@ -74,7 +74,22 @@ inline std::string_view GetTargetShortName(const TargetProfile &profile) {
   case TargetFormat::OpenGL:
     return "glsl";
   case TargetFormat::OpenGLES:
-    return "gles";
+    return "essl";
+  default:
+    return "unknown";
+  }
+}
+
+inline std::string_view GetTargetShortNameForHeaderVar(const TargetProfile &profile) {
+  switch (profile.Format) {
+  case TargetFormat::DirectX:
+    return "dx11";
+  case TargetFormat::SpirV:
+    return "spv";
+  case TargetFormat::OpenGL:
+    return "glsl";
+  case TargetFormat::OpenGLES:
+    return "essl";
   default:
     return "unknown";
   }
