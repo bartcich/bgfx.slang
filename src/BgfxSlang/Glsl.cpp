@@ -133,6 +133,7 @@ Status writeGlslShader(Slang::ComPtr<slang::IComponentType> &linkedProgram, Targ
   options.es = targetProfile.Format == TargetFormat::OpenGLES;
   options.emit_uniform_buffer_as_plain_uniforms = true;
   options.enable_420pack_extension = false;
+  options.fragment.default_float_precision = spirv_cross::CompilerGLSL::Options::Precision::Highp;
   glsl.set_common_options(options);
 
   auto resources = glsl.get_shader_resources();

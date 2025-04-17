@@ -541,7 +541,7 @@ Status Compiler::Compile(int64_t entryPointIdx, int64_t targetIdx, IWriter &writ
     writer.Write(uniform.TexFormat);
   }
 
-  if (target.Format == TargetFormat::OpenGL) {
+  if (target.Format == TargetFormat::OpenGL || target.Format == TargetFormat::OpenGLES) {
     return writeGlslShader(linkedProgram, target, processedEntryPointIdx, processedTargetIndex, writer, inputParams, uniforms);
   }
 
