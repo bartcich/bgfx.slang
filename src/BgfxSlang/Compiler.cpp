@@ -319,6 +319,7 @@ Status Compiler::createSession(slang::ISession **outSession, int64_t entryPointI
 
   std::vector<std::vector<slang::CompilerOptionEntry>> optionsPerTarget;
   std::vector<slang::TargetDesc> targetDescs;
+  std::vector<slang::PreprocessorMacroDesc> macros;
 
   if (targetIdx > -1) {
     EntryPoint entryPoint = entryPointIdx > -1 ? availableEntryPoints[entryPointIdx] : EntryPoint{};
@@ -330,6 +331,8 @@ Status Compiler::createSession(slang::ISession **outSession, int64_t entryPointI
     targetDesc.compilerOptionEntryCount = optionsPerTarget.back().size();
     targetDesc.compilerOptionEntries = optionsPerTarget.back().data();
     targetDescs.push_back(targetDesc);
+
+    target.Profile.AddTargetMacros(macros);
 
     writeLog("CreateSession: Creating session for target " + std::string(target.Profile.Id) + "...");
   } else {
@@ -358,6 +361,9 @@ Status Compiler::createSession(slang::ISession **outSession, int64_t entryPointI
 
   sessionDesc.searchPathCount = modulesSearchPaths.size();
   sessionDesc.searchPaths = modulesSearchPathsChar.data();
+
+  sessionDesc.preprocessorMacroCount = macros.size();
+  sessionDesc.preprocessorMacros = macros.data();
 
   slangGlobalSession->createSession(sessionDesc, outSession);
 

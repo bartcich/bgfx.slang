@@ -34,6 +34,26 @@ struct TargetProfile {
     }
     return Id;
   }
+
+  void AddTargetMacros(std::vector<slang::PreprocessorMacroDesc> &macros) const {
+    switch (Format) {
+    case TargetFormat::DirectX:
+      macros.emplace_back("BGFX_SHADER_LANGUAGE_HLSL", "1");
+      break;
+    case TargetFormat::SpirV:
+      macros.emplace_back("BGFX_SHADER_LANGUAGE_SPIRV", "1");
+      break;
+    case TargetFormat::OpenGL:
+      macros.emplace_back("BGFX_SHADER_LANGUAGE_GLSL", "1");
+      break;
+    case TargetFormat::OpenGLES:
+      macros.emplace_back("BGFX_SHADER_LANGUAGE_GLSL", "1");
+      macros.emplace_back("BGFX_SHADER_LANGUAGE_GLES", "1");
+      break;
+    default:
+      break;
+    }
+  }
 };
 
 struct TargetSettings {
