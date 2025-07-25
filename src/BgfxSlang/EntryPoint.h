@@ -1,9 +1,12 @@
 #pragma once
 
+#include "Attributes.h"
+#include <algorithm>
 #include <cstdint>
 #include <slang.h>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace BgfxSlang {
 
@@ -31,9 +34,30 @@ struct EntryPoint {
   std::string Name;
   int64_t Idx;
   StageType Stage;
+  std::vector<UserAttribute> Attributes;
+
+  [[nodiscard]] bool HasUserAttribute(std::string_view name) const {
+    return std::ranges::any_of(Attributes, [name](const auto &attr) { return attr.GetName() == name; });
+  }
+
+  UserAttribute *GetUserAttribute(std::string_view name) {
+    for (auto &attr : Attributes) {
+      if (attr.GetName() == name) {
+        return &attr;
+      }
+    }
+    return nullptr;
+  }
+
+  [[nodiscard]] inline bool IsValid() const { return Idx >= 0; }
 
   static EntryPoint FromSlangEntryPoint(int64_t idx, slang::EntryPointReflection *entryPoint) {
-    return {entryPoint->getName(), idx, ConvertStageType(entryPoint->getStage())};
+    EntryPoint ep = {entryPoint->getName(), idx, ConvertStageType(entryPoint->getStage())};
+    auto *fun = entryPoint->getFunction();
+    for (int i = 0; i < fun->getUserAttributeCount(); ++i) {
+      ep.Attributes.push_back(UserAttribute::FromSlangAttribute(fun->getUserAttributeByIndex(i)));
+    }
+    return ep;
   }
 };
 

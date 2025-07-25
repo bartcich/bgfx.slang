@@ -120,16 +120,16 @@ int main(int argc, char **argv) {
     auto target = compiler.GetTarget(targetIdx);
 
     for (uint64_t i = 0; i < compiler.GetEntryPointCount(); i++) {
-      auto entryPoint = compiler.GetEntryPointByIndex(i);
+      const auto *entryPoint = compiler.GetEntryPointByIndex(i);
 
-      std::string outputPath = formatOutputPath(outputFormat, inputFilePath, target, entryPoint);
+      std::string outputPath = formatOutputPath(outputFormat, inputFilePath, target, *entryPoint);
 
-      printLog(verbose, "Compiling entry point '" + entryPoint.Name + "' (" + std::string(BgfxSlang::getStageShortName(entryPoint.Stage)) +
-                            ") to: " + outputPath);
+      printLog(verbose, "Compiling entry point '" + entryPoint->Name + "' (" +
+                            std::string(BgfxSlang::getStageShortName(entryPoint->Stage)) + ") to: " + outputPath);
 
       std::unique_ptr<BgfxSlang::FileWriter> writer;
       if (bin2C) {
-        writer = std::make_unique<BgfxSlang::Bin2cWriter>(formatHeaderVarName(bin2CVarFormat, inputFilePath, target, entryPoint));
+        writer = std::make_unique<BgfxSlang::Bin2cWriter>(formatHeaderVarName(bin2CVarFormat, inputFilePath, target, *entryPoint));
       } else {
         writer = std::make_unique<BgfxSlang::FileWriter>();
       }
@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
         std::cerr << "Failed to open file: " << outputPath << '\n';
         exit(1);
       }
-      verifyStatus(compiler.Compile(entryPoint.Idx, targetIdx, *writer));
+      verifyStatus(compiler.Compile(entryPoint->Idx, targetIdx, *writer));
       writer->Close();
     }
   }

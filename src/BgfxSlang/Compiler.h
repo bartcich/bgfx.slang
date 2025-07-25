@@ -39,8 +39,8 @@ public:
   [[nodiscard]] inline int64_t GetTargetCount() const { return targets.size(); }
 
   [[nodiscard]] inline uint64_t GetEntryPointCount() const { return entryPointsSource().size(); };
-  [[nodiscard]] EntryPoint GetEntryPointByName(std::string_view name) const;
-  [[nodiscard]] EntryPoint GetEntryPointByIndex(int64_t idx) const;
+  [[nodiscard]] const EntryPoint *GetEntryPointByName(std::string_view name) const;
+  [[nodiscard]] const EntryPoint *GetEntryPointByIndex(int64_t idx) const;
 
 private:
   IWriter *verboseWriter = nullptr;

@@ -1,4 +1,5 @@
 #include "Compiler.h"
+#include "Attributes.h"
 #include "EntryPoint.h"
 #include "Glsl.h"
 #include "Status.h"
@@ -7,6 +8,7 @@
 #include "Types.h"
 #include "Utils/IWriter.h"
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <fstream>
 #include <functional>
@@ -301,7 +303,36 @@ Status Compiler::LoadProgram(std::string_view code) {
     auto *ep = layout->getEntryPointByIndex(i);
     auto entryPoint = EntryPoint::FromSlangEntryPoint(i, ep);
     availableEntryPoints.push_back(entryPoint);
-    writeLog("      - " + entryPoint.Name + " (" + std::string(getStageShortName(entryPoint.Stage)) + ")");
+
+    // write entry point info
+    std::string msg = "      - " + entryPoint.Name + " (" + std::string(getStageShortName(entryPoint.Stage)) + ")";
+    if (entryPoint.Attributes.size() > 0) {
+      msg += " [";
+      for (const auto &attr : entryPoint.Attributes) {
+        msg += std::string(attr.GetName()) + ": ";
+        for (size_t j = 0; j < attr.GetArgumentCount(); j++) {
+          switch (attr.GetArgumentType(j)) {
+          case ArgumentType::String:
+            msg += "\"" + std::string(attr.GetArgumentValueString(j)) + "\", ";
+            break;
+          case ArgumentType::Int:
+            msg += std::to_string(attr.GetArgumentValueInt(j)) + ", ";
+            break;
+          case ArgumentType::Float:
+            msg += std::to_string(attr.GetArgumentValueFloat(j)) + ", ";
+            break;
+          default:
+            msg += "unknown, ";
+            break;
+          }
+        }
+        msg.pop_back(); // Remove last comma
+        msg.pop_back(); // Remove last space
+        msg += "]";
+      }
+    }
+
+    writeLog(msg);
   }
 
   return !warnings.empty() ? Status{StatusCode::Warning, warnings} : Status{};
@@ -569,15 +600,20 @@ Status Compiler::Compile(int64_t entryPointIdx, int64_t targetIdx, IWriter &writ
   return !warnings.empty() ? Status{StatusCode::Warning, warnings} : Status{};
 }
 
-EntryPoint Compiler::GetEntryPointByIndex(int64_t idx) const { return entryPointsSource()[idx]; }
+const EntryPoint *Compiler::GetEntryPointByIndex(int64_t idx) const {
+  if (idx < 0 || idx >= entryPointsSource().size()) {
+    return nullptr;
+  }
+  return &entryPointsSource().at(idx);
+}
 
-EntryPoint Compiler::GetEntryPointByName(std::string_view name) const {
+const EntryPoint *Compiler::GetEntryPointByName(std::string_view name) const {
   for (const auto &entryPoint : entryPointsSource()) {
     if (entryPoint.Name == name) {
-      return entryPoint;
+      return &entryPoint;
     }
   }
-  return {};
+  return nullptr;
 }
 
 } // namespace BgfxSlang
