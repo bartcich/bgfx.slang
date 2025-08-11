@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Target.h"
 #include "TextureData.h"
 #include <array>
 #include <cstddef>
@@ -10,6 +9,15 @@
 #include <string_view>
 
 namespace BgfxSlang {
+
+enum class TargetFormat { Unknown, DirectX, SpirV, OpenGL, OpenGLES };
+
+enum class StageType {
+  Unknown,
+  Vertex,
+  Fragment,
+  Compute,
+};
 
 enum class UniformType : uint8_t {
   Sampler,

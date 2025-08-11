@@ -7,6 +7,7 @@
 #include "TextureData.h"
 #include "Types.h"
 #include "Utils/IWriter.h"
+#include "Utils/StringUtils.h"
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
@@ -304,6 +305,17 @@ Status Compiler::LoadProgram(std::string_view code) {
     auto entryPoint = EntryPoint::FromSlangEntryPoint(i, ep);
     availableEntryPoints.push_back(entryPoint);
 
+    for (auto i = 0; i < targets.size(); i++) {
+      auto &target = targets.at(i);
+
+      Slang::ComPtr<slang::IBlob> entryPointHash;
+      linkedProgram->getEntryPointHash(entryPoint.Idx, i, entryPointHash.writeRef());
+      std::string hex = BgfxSlang::toHex(
+          std::span(reinterpret_cast<const uint8_t *>(entryPointHash->getBufferPointer()), entryPointHash->getBufferSize()));
+
+      availableEntryPoints.back().TargetHashes.emplace_back(target.Profile.Format, hex);
+    }
+
     // write entry point info
     std::string msg = "      - " + entryPoint.Name + " (" + std::string(getStageShortName(entryPoint.Stage)) + ")";
     if (entryPoint.Attributes.size() > 0) {
@@ -404,7 +416,6 @@ Status Compiler::createSession(slang::ISession **outSession, int64_t entryPointI
 Status Compiler::processProgram(std::string_view code, slang::IComponentType **outProgram, int64_t entryPointIdx, int64_t targetIdx) {
   slang::ISession *session;
   std::string warnings;
-
   if (auto status = createSession(&session, entryPointIdx, targetIdx); !status.IsOk()) {
     return status;
   }
@@ -498,8 +509,6 @@ Status Compiler::Compile(int64_t entryPointIdx, int64_t targetIdx, IWriter &writ
   if (diagnostics != nullptr) {
     appendWarnings(warnings, diagnostics);
   }
-
-  Slang::ComPtr<ISlangBlob> hash;
 
   auto *entryPointLayout = layout->getEntryPointByIndex(processedEntryPointIdx);
   auto stage = entryPointLayout->getStage();

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Attributes.h"
+#include "Types.h"
 #include <algorithm>
 #include <cstdint>
 #include <slang.h>
@@ -9,13 +10,6 @@
 #include <vector>
 
 namespace BgfxSlang {
-
-enum class StageType {
-  Unknown,
-  Vertex,
-  Fragment,
-  Compute,
-};
 
 inline StageType ConvertStageType(SlangStage stage) {
   switch (stage) {
@@ -30,11 +24,17 @@ inline StageType ConvertStageType(SlangStage stage) {
   }
 }
 
+struct TargetHash {
+  TargetFormat Format;
+  std::string Hash;
+};
+
 struct EntryPoint {
   std::string Name;
   int64_t Idx;
   StageType Stage;
   std::vector<UserAttribute> Attributes;
+  std::vector<TargetHash> TargetHashes;
 
   [[nodiscard]] bool HasUserAttribute(std::string_view name) const {
     return std::ranges::any_of(Attributes, [name](const auto &attr) { return attr.GetName() == name; });
@@ -47,6 +47,15 @@ struct EntryPoint {
       }
     }
     return nullptr;
+  }
+
+  [[nodiscard]] std::string_view GetHash(TargetFormat format) const {
+    for (const auto &hash : TargetHashes) {
+      if (hash.Format == format) {
+        return hash.Hash;
+      }
+    }
+    return {};
   }
 
   [[nodiscard]] inline bool IsValid() const { return Idx >= 0; }

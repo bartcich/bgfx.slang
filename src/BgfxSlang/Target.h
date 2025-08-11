@@ -1,14 +1,12 @@
 #pragma once
 
-#include "EntryPoint.h"
+#include "Types.h"
 #include <array>
 #include <slang.h>
 #include <string_view>
 #include <vector>
 
 namespace BgfxSlang {
-
-enum class TargetFormat { Unknown, DirectX, SpirV, OpenGL, OpenGLES };
 
 struct TargetProfile {
   TargetFormat Format;

@@ -3,6 +3,7 @@
 #include "EntryPoint.h"
 #include "Status.h"
 #include "Target.h"
+#include "Types.h"
 #include "Utils/IWriter.h"
 #include <cstdint>
 #include <slang-com-ptr.h>
