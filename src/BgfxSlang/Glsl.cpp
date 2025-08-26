@@ -16,6 +16,10 @@
 
 namespace BgfxSlang {
 
+namespace {
+constexpr std::string_view entryPointParamPrefix = "entryPointParam_";
+}
+
 struct DefaultParam {
   std::string_view Name;
   Attrib Attr;
@@ -91,6 +95,17 @@ Uniform getUniformByName(std::string_view name, const std::vector<Uniform> &unif
   return {};
 }
 
+void processOutputName(SlangStage stage, spirv_cross::CompilerGLSL &glsl, const spirv_cross::Resource &input) {
+  if (stage == SLANG_STAGE_VERTEX) {
+    const auto lastDotPos = input.name.rfind('.');
+    if (lastDotPos == std::string::npos) {
+      return;
+    }
+    auto newName = input.name.substr(lastDotPos + 1);
+    glsl.set_name(input.id, std::string(entryPointParamPrefix) + newName);
+  }
+}
+
 void processInputName(SlangStage stage, spirv_cross::CompilerGLSL &glsl, const spirv_cross::Resource &input,
                       const std::vector<Param> &inputParams) {
   if (stage == SLANG_STAGE_VERTEX) {
@@ -104,7 +119,12 @@ void processInputName(SlangStage stage, spirv_cross::CompilerGLSL &glsl, const s
       }
     }
   } else {
-    glsl.set_name(input.id, static_cast<std::string>("entryPointParam_vertexMain_" + input.name));
+    const auto lastDotPos = input.name.rfind('.');
+    if (lastDotPos == std::string::npos) {
+      return;
+    }
+    auto newName = input.name.substr(lastDotPos + 1);
+    glsl.set_name(input.id, std::string(entryPointParamPrefix) + newName);
   }
 }
 
@@ -137,6 +157,11 @@ Status writeGlslShader(Slang::ComPtr<slang::IComponentType> &linkedProgram, Targ
   glsl.set_common_options(options);
 
   auto resources = glsl.get_shader_resources();
+
+  for (auto &output : resources.stage_outputs) {
+    auto a = output.name;
+    processOutputName(stage, glsl, output);
+  }
 
   for (auto &input : resources.stage_inputs) {
     processInputName(stage, glsl, input, inputParams);
