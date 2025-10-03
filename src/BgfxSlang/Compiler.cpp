@@ -153,6 +153,26 @@ uint32_t hashParams(const std::vector<Param> &params) {
   return hash;
 }
 
+bool isUsedUniform(slang::IMetadata *entryPointMetadata, TargetProfile target, SlangStage stage, slang::VariableLayoutReflection *param) {
+  auto category = param->getCategory();
+  if (category == slang::ParameterCategory::Uniform) {
+    category = slang::ParameterCategory::ConstantBuffer;
+  }
+
+  uint32_t offsetshift = 0;
+  if (target.Format == TargetFormat::SpirV && stage == SLANG_STAGE_FRAGMENT) {
+    if (category == slang::ParameterCategory::ConstantBuffer) {
+      offsetshift = 1;
+    }
+  }
+
+  bool isUsed = false;
+  entryPointMetadata->isParameterLocationUsed(static_cast<SlangParameterCategory>(category), param->getBindingSpace(category),
+                                              param->getOffset(category) + offsetshift, isUsed);
+
+  return isUsed;
+}
+
 bool isSkippableUniform(slang::TypeReflection *type) { return type->getKind() == slang::TypeReflection::Kind::SamplerState; }
 
 UniformType convertUniformType(slang::TypeReflection *type, bool isCompute) {
@@ -173,12 +193,8 @@ UniformType convertUniformType(slang::TypeReflection *type, bool isCompute) {
   }
 }
 
-Status getUniforms(slang::ProgramLayout *programLayout, bool isCompute, std::vector<Uniform> &uniforms, uint16_t &uniformBufferSize) {
-  auto *globalVarLayout = programLayout->getGlobalParamsVarLayout();
-  auto *scopeTypeLayout = globalVarLayout->getTypeLayout();
-
-  slang::VariableLayoutReflection *elementsVarLayout = globalVarLayout;
-
+Status verifyUniformLayout(slang::TypeLayoutReflection *scopeTypeLayout, slang::VariableLayoutReflection *&elementsVarLayout,
+                           slang::TypeLayoutReflection *&elementsTypeLayout) {
   if (scopeTypeLayout->getKind() != slang::TypeReflection::Kind::Struct) {
     if (scopeTypeLayout->getKind() != slang::TypeReflection::Kind::ConstantBuffer) {
       return Status{StatusCode::Error, "Global scope is not a struct or constant buffer"};
@@ -187,10 +203,25 @@ Status getUniforms(slang::ProgramLayout *programLayout, bool isCompute, std::vec
     elementsVarLayout = scopeTypeLayout->getElementVarLayout();
   }
 
-  auto *elementsTypeLayout = elementsVarLayout->getTypeLayout();
+  elementsTypeLayout = elementsVarLayout->getTypeLayout();
 
   if (elementsTypeLayout->getKind() != slang::TypeReflection::Kind::Struct) {
     return Status{StatusCode::Error, "Global scope elements are not a struct"};
+  }
+
+  return Status{};
+}
+
+Status getUniforms(slang::ProgramLayout *programLayout, slang::IMetadata *entryPointMetadata, TargetProfile target, SlangStage stage,
+                   std::vector<Uniform> &uniforms, uint16_t &uniformBufferSize) {
+  auto *globalVarLayout = programLayout->getGlobalParamsVarLayout();
+  auto *scopeTypeLayout = globalVarLayout->getTypeLayout();
+
+  slang::VariableLayoutReflection *elementsVarLayout = globalVarLayout;
+  slang::TypeLayoutReflection *elementsTypeLayout;
+
+  if (auto status = verifyUniformLayout(scopeTypeLayout, elementsVarLayout, elementsTypeLayout); !status.IsOk()) {
+    return status;
   }
 
   uint64_t textureIndex = 0;
@@ -203,9 +234,15 @@ Status getUniforms(slang::ProgramLayout *programLayout, bool isCompute, std::vec
 
     auto *elementType = isArray ? paramType->getElementType() : paramType;
 
+    if (!isUsedUniform(entryPointMetadata, target, stage, param)) {
+      continue;
+    }
+
     if (isSkippableUniform(elementType)) {
       continue;
     }
+
+    auto isCompute = stage == SLANG_STAGE_COMPUTE;
 
     auto convertedType = convertUniformType(elementType, isCompute);
     if (convertedType == UniformType::Unknown) {
@@ -521,9 +558,13 @@ Status Compiler::Compile(int64_t entryPointIdx, int64_t targetIdx, IWriter &writ
   if (auto status = getOutputParams(layout->getEntryPointByIndex(processedEntryPointIdx), outputParams); !status.IsOk()) {
     return status;
   }
+
+  slang::IMetadata *entryPointMetadata;
+  linkedProgram->getEntryPointMetadata(processedEntryPointIdx, processedTargetIndex, &entryPointMetadata);
+
   std::vector<Uniform> uniforms;
   uint16_t uniformBufferSize = 0;
-  if (auto status = getUniforms(layout, stage == SLANG_STAGE_COMPUTE, uniforms, uniformBufferSize); !status.IsOk()) {
+  if (auto status = getUniforms(layout, entryPointMetadata, target, stage, uniforms, uniformBufferSize); !status.IsOk()) {
     return status;
   }
 
@@ -538,7 +579,8 @@ Status Compiler::Compile(int64_t entryPointIdx, int64_t targetIdx, IWriter &writ
     }
     writeLog("   Found " + std::to_string(uniforms.size()) + " uniforms:");
     for (const auto &uniform : uniforms) {
-      writeLog("      - " + uniform.Name + " (" + std::string(uniformTypeToString(uniform.Type)) + ")");
+      writeLog("      - " + uniform.Name + " (" + std::string(uniformTypeToString(uniform.Type)) +
+               ", reg: " + std::to_string(uniform.RegIndex) + ", count: " + std::to_string(uniform.RegCount) + ")");
     }
   }
 
@@ -569,9 +611,6 @@ Status Compiler::Compile(int64_t entryPointIdx, int64_t targetIdx, IWriter &writ
   writer.Write<uint16_t>(uniforms.size());
 
   const uint32_t fragmentBit = stage == SLANG_STAGE_FRAGMENT ? kUniformFragmentBit : 0;
-
-  slang::IMetadata *entryPointMetadata;
-  linkedProgram->getEntryPointMetadata(processedEntryPointIdx, processedTargetIndex, &entryPointMetadata);
 
   for (const auto &uniform : uniforms) {
     uint8_t nameSize = uniform.Name.size();
