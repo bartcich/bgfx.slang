@@ -323,6 +323,9 @@ Status Compiler::LoadProgram(std::string_view code) {
   inputCode = code;
   std::string warnings;
 
+  availableEntryPoints.clear();
+  selectedEntryPoints.clear();
+
   Slang::ComPtr<slang::IComponentType> linkedProgram;
 
   if (auto status = processProgram(code, linkedProgram.writeRef()); !status.IsOk()) {
