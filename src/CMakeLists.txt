@@ -29,7 +29,6 @@ endif()
 target_link_libraries(${PROJECT_NAME} PUBLIC spirv-cross-core spirv-cross-glsl)
 
 if (BGFXSLANG_INSTALL)
-
     install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}_targets
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"

@@ -200,7 +200,7 @@ Status writeGlslShader(Slang::ComPtr<slang::IComponentType> &linkedProgram, Targ
 
       // just vec4 etc
       std::string pattern = bufferName + "\\.";
-      pattern += memberName;
+      pattern += memberName + R"(?![A-Za-z])";
       std::regex re(pattern);
       const std::string &format = memberName;
       source = std::regex_replace(source, re, format);

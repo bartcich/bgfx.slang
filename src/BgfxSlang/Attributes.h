@@ -63,7 +63,7 @@ public:
       case slang::TypeReflection::Kind::Struct: {
         size_t stringSize = 0;
         const auto *stringValue = attr->getArgumentValueString(i, &stringSize);
-        std::string_view strValue(stringValue + 1, stringSize - 2);
+        std::string_view strValue(stringValue, stringSize);
         userAttr.AddArgumentValue(strValue);
         break;
       }
