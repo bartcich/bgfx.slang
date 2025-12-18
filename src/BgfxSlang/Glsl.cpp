@@ -5,6 +5,7 @@
 #include "spirv.hpp"
 #include "spirv_cross.hpp"
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <regex>
 #include <slang-com-ptr.h>
@@ -18,7 +19,75 @@ namespace BgfxSlang {
 
 namespace {
 constexpr std::string_view entryPointParamPrefix = "entryPointParam_";
+
+bool consumeBalancedSquareBrackets(const std::string &s, size_t &i) {
+  if (i >= s.size() || s[i] != '[') {
+    return false;
+  }
+
+  int depth = 0;
+  while (i < s.size()) {
+    char c = s[i++];
+
+    if (c == '[') {
+      depth++;
+    } else if (c == ']') {
+      depth--;
+      if (depth == 0) {
+        return true;
+      }
+    } else if (c == '"' || c == '\'') {
+      char q = c;
+      while (i < s.size()) {
+        char d = s[i++];
+        if (d == '\\' && i < s.size()) {
+          i++;
+          continue;
+        }
+        if (d == q) {
+          break;
+        }
+      }
+    }
+  }
+  return false;
 }
+
+void consumeAnyIndexing(const std::string &s, size_t &i) {
+  while (i < s.size() && s[i] == '[') {
+    size_t tmp = i;
+    if (!consumeBalancedSquareBrackets(s, tmp)) {
+      break;
+    }
+    i = tmp;
+  }
+}
+
+bool startsWithAt(const std::string &s, size_t i, const std::string &needle) { return s.compare(i, needle.size(), needle) == 0; }
+
+void removeDataAfter(std::string &source, const std::string &bufferName, const std::string &memberName) {
+  const std::string head = bufferName + "." + memberName;
+  const std::string dataTok = ".data";
+
+  size_t pos = 0;
+  while ((pos = source.find(head, pos)) != std::string::npos) {
+    size_t i = pos + head.size();
+
+    consumeAnyIndexing(source, i);
+
+    for (int k = 0; k < 2; k++) {
+      if (!startsWithAt(source, i, dataTok)) {
+        break;
+      }
+
+      source.erase(i, dataTok.size());
+      consumeAnyIndexing(source, i);
+    }
+
+    pos = i;
+  }
+}
+} // namespace
 
 struct DefaultParam {
   std::string_view Name;
@@ -191,16 +260,14 @@ Status writeGlslShader(Slang::ComPtr<slang::IComponentType> &linkedProgram, Targ
 
       auto memberType = glsl.get_type(type.member_types[i]);
       if (memberType.op == spv::OpTypeStruct) {
-        std::string pattern = bufferName + "\\.";
-        pattern += memberName + R"(\.data(\[\w+\])?(?:\.data(\[\w+\])?)?)";
-        std::regex re(pattern);
-        std::string format = memberName + "$1$2";
-        source = std::regex_replace(source, re, format);
+        // remove all .data after bufferName.memberName
+        // for example globalParams.lightBuffer.data[0] to globalParams.lightBuffer[0] etc.
+        removeDataAfter(source, bufferName, memberName);
       }
 
       // just vec4 etc
       std::string pattern = bufferName + "\\.";
-      pattern += memberName + R"(?![A-Za-z])";
+      pattern += memberName + "(?![A-Za-z])";
       std::regex re(pattern);
       const std::string &format = memberName;
       source = std::regex_replace(source, re, format);
