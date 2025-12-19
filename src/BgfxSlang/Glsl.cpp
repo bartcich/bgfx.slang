@@ -236,6 +236,7 @@ Status writeGlslShader(Slang::ComPtr<slang::IComponentType> &linkedProgram, Targ
     processInputName(stage, glsl, input, inputParams);
   }
 
+  glsl.build_dummy_sampler_for_combined_images();
   glsl.build_combined_image_samplers();
   for (const auto &sampler : glsl.get_combined_image_samplers()) {
     glsl.set_name(sampler.combined_id, glsl.get_name(sampler.image_id));
