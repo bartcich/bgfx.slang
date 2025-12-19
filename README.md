@@ -16,8 +16,10 @@ Latest slang version tested: 2025.22.1
 ## Content
 
 - [How to build](#how-to-build)
+  - [Using with vcpkg](#using-with-vcpkg)
 - [How to write shaders](#how-to-write-shaders)
 - [How to use tool](#how-to-use-tool)
+  - [Tool with cmake](#tool-with-cmake)
 - [How to use library](#how-to-use-library)
 
 ## How to build
@@ -31,6 +33,10 @@ cmake --build build --config Release
 ```
 
 This will build both the library and the command line tool. By default it will also download slang binaries and build spriv-cross from source. You can also use `BGFXSLANG_EXTERNAL_LIBS` option to use your own slang and spirv-cross builds.
+
+### Using with vcpkg
+
+This library is too young to be included in official vcpkg repo. But you can add it as custom port. See [vcpkg-port-example/bgfx-slang](vcpkg-port-example/bgfx-slang) for example portfile.
 
 ## How to write shaders
 
