@@ -2,6 +2,7 @@
 #include "Attributes.h"
 #include "EntryPoint.h"
 #include "Glsl.h"
+#include "Metal.h"
 #include "Status.h"
 #include "Target.h"
 #include "TextureData.h"
@@ -213,7 +214,7 @@ Status verifyUniformLayout(slang::TypeLayoutReflection *scopeTypeLayout, slang::
 }
 
 Status getUniforms(slang::ProgramLayout *programLayout, slang::IMetadata *entryPointMetadata, TargetProfile target, SlangStage stage,
-                   std::vector<Uniform> &uniforms, uint16_t &uniformBufferSize) {
+                   std::vector<Uniform> &uniforms, uint16_t &uniformBufferSize, slang::TypeLayoutReflection *&globalsLayout) {
   auto *globalVarLayout = programLayout->getGlobalParamsVarLayout();
   auto *scopeTypeLayout = globalVarLayout->getTypeLayout();
 
@@ -282,6 +283,22 @@ Status getUniforms(slang::ProgramLayout *programLayout, slang::IMetadata *entryP
   }
 
   uniformBufferSize = static_cast<uint16_t>(elementsTypeLayout->getSize());
+  globalsLayout = elementsTypeLayout;
+  return Status{};
+}
+
+Status writeShaderCode(slang::IBlob *code, slang::TypeLayoutReflection *globalsLayout, TargetProfile target, SlangStage stage,
+                       IWriter &writer, const std::vector<Param> &inputParams) {
+  if (target.Format == TargetFormat::Metal) {
+    return writeMetalShader(code, globalsLayout, target, stage, writer, inputParams);
+  }
+
+  uint32_t codeSize = code->getBufferSize();
+  writer.Write(codeSize);
+  writer.Write(code->getBufferPointer(), codeSize);
+
+  uint8_t nul = 0;
+  writer.Write(nul);
   return Status{};
 }
 
@@ -426,7 +443,8 @@ Status Compiler::createSession(slang::ISession **outSession, int64_t entryPointI
     for (const auto &target : targets) {
       slang::TargetDesc targetDesc;
       targetDesc.format = target.Profile.GetSlangTarget();
-      targetDesc.profile = slangGlobalSession->findProfile(target.Profile.Id.data());
+      auto profile = target.Profile.Format == TargetFormat::Metal ? target.Profile.GetProfile() : target.Profile.Id;
+      targetDesc.profile = slangGlobalSession->findProfile(profile.data());
       optionsPerTarget.push_back(target.GetCompilerOptions(StageType::Vertex));
       targetDesc.compilerOptionEntryCount = optionsPerTarget.back().size();
       targetDesc.compilerOptionEntries = optionsPerTarget.back().data();
@@ -567,7 +585,8 @@ Status Compiler::Compile(int64_t entryPointIdx, int64_t targetIdx, IWriter &writ
 
   std::vector<Uniform> uniforms;
   uint16_t uniformBufferSize = 0;
-  if (auto status = getUniforms(layout, entryPointMetadata, target, stage, uniforms, uniformBufferSize); !status.IsOk()) {
+  slang::TypeLayoutReflection *globalsLayout = nullptr;
+  if (auto status = getUniforms(layout, entryPointMetadata, target, stage, uniforms, uniformBufferSize, globalsLayout); !status.IsOk()) {
     return status;
   }
 
@@ -633,12 +652,9 @@ Status Compiler::Compile(int64_t entryPointIdx, int64_t targetIdx, IWriter &writ
     return writeGlslShader(linkedProgram, target, processedEntryPointIdx, processedTargetIndex, writer, inputParams, uniforms);
   }
 
-  uint32_t codeSize = code->getBufferSize();
-  writer.Write(codeSize);
-  writer.Write(code->getBufferPointer(), codeSize);
-
-  uint8_t nul = 0;
-  writer.Write(nul);
+  if (auto status = writeShaderCode(code, globalsLayout, target, stage, writer, inputParams); !status.IsOk()) {
+    return status;
+  }
 
   writer.Write<uint8_t>(inputParams.size());
   for (const auto &param : inputParams) {

@@ -175,18 +175,22 @@ void processOutputName(SlangStage stage, spirv_cross::CompilerGLSL &glsl, const 
   }
 }
 
+void renameVertexInput(spirv_cross::CompilerGLSL &compiler, const spirv_cross::Resource &input, const std::vector<Param> &inputParams) {
+  for (const auto &inpParam : inputParams) {
+
+    if (input.name == inpParam.QualifiedName) {
+
+      auto defaultName = getDefaultInputName(inpParam);
+      compiler.set_name(input.id, std::string(defaultName));
+      break;
+    }
+  }
+}
+
 void processInputName(SlangStage stage, spirv_cross::CompilerGLSL &glsl, const spirv_cross::Resource &input,
                       const std::vector<Param> &inputParams) {
   if (stage == SLANG_STAGE_VERTEX) {
-    for (const auto &inpParam : inputParams) {
-
-      if (input.name == inpParam.QualifiedName) {
-
-        auto defaultName = getDefaultInputName(inpParam);
-        glsl.set_name(input.id, std::string(defaultName));
-        break;
-      }
-    }
+    renameVertexInput(glsl, input, inputParams);
   } else {
     const auto lastDotPos = input.name.rfind('.');
     if (lastDotPos == std::string::npos) {
