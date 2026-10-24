@@ -17,13 +17,14 @@ if (BGFXSLANG_EXTERNAL_LIBS)
 
     find_package(spirv_cross_core CONFIG REQUIRED)
     find_package(spirv_cross_glsl CONFIG REQUIRED)
+    find_package(spirv_cross_msl CONFIG REQUIRED)
 else()
     include(${CMAKE_CURRENT_SOURCE_DIR}/CMakeFiles/SlangLib.cmake)
     include(${CMAKE_CURRENT_SOURCE_DIR}/CMakeFiles/SpirvCrossLib.cmake)
     target_link_libraries(${PROJECT_NAME} PUBLIC slang::slang)
 endif()
     
-target_link_libraries(${PROJECT_NAME} PUBLIC spirv-cross-core spirv-cross-glsl)
+target_link_libraries(${PROJECT_NAME} PUBLIC spirv-cross-core spirv-cross-glsl spirv-cross-msl)
 
 if (BGFXSLANG_INSTALL)
     install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}_targets

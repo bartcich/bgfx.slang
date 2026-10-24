@@ -10,7 +10,7 @@
 
 namespace BgfxSlang {
 
-enum class TargetFormat { Unknown, DirectX, SpirV, OpenGL, OpenGLES };
+enum class TargetFormat { Unknown, DirectX, SpirV, OpenGL, OpenGLES, Metal };
 
 enum class StageType {
   Unknown,

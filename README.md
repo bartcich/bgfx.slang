@@ -10,6 +10,7 @@ Currently supported backends:
 - Vulkan
 - OpenGL - through SPIR-V cross compilation and regex replacements
 - OpenGLES - through SPIR-V cross compilation and regex replacements
+- Metal - through SPIR-V cross compilation (macOS and iOS)
 
 Latest slang version tested: 2026.20
 
@@ -46,6 +47,7 @@ There are couple of important things to note:
 - unlike bgfx shaderc, bgfx.slang does not require you to keep the Vertex Shaders Attributes names. When necessary, it will remap them automatically (glsl and gles) based on semantics. The only exception are the instance buffer input attributes which must have `data` string in their names (also applies only to glsl and gles).
 - there is no `bgfx_shader.sh` or `bgfx_compute.sh`. Most of the differences between backends should be handled automatically by slang. This means that you need to define predefined uniforms that you use in your shader (there's no easy way to exclude unused uniforms with slang).
 - you can use user attributes to tag your entry points for easier identification in your engine code (for example you can tag your shadow pass shaders with `[Pass("CastShadow")]` attribute). See [User attributes](#user-attributes) section above for more details.
+- Metal shaders are cross compiled from SPIR-V. Textures, samplers and buffers use their HLSL register index as the bgfx stage (`register(t0)`, `register(s0)`, `register(u2)`...), so give every resource an explicit register.
 - Slang does not support OpenGLES directly and emits only latest OpenGL code version. All the uniforms are always combined into constant buffer and bgfx requires old style plain uniforms declarations. Because of that, OpenGL and OpenGLES backends are implemented using SPIR-V cross compilation and manual code parsing and modifications. This means that some constructs might not work as expected. It is also possible that using different slang versions might lead to corrupted code generation for these backends.
 
 ## How to use tool
@@ -57,7 +59,7 @@ bgfx-slang-cmd input.slang -t dx -t spirv -o path/{{target}}/{{stage}}_{{name}}.
 
 Options:
 - `-o, --output <output>` - output path template. Supported template variables: `{{name}}`, `{{filename}}`, `{{entryPoint}}`, `{{stage}}`, `{{target}}`
-- `-t, --target <target>` - target backend. Supported targets: `dx`, `spirv`, `glsl`, `gles` (or [specific version](src/BgfxSlang/Target.h#L64)). You can specify multiple targets by using this option multiple times.
+- `-t, --target <target>` - target backend. Supported targets: `dx`, `spirv`, `glsl`, `gles`, `metal`, `metal_ios` (or [specific version](src/BgfxSlang/Target.h#L64)). You can specify multiple targets by using this option multiple times.
 - `-v, --verbose` - enable verbose output
 - `-b, --bin2c <variable_name_format>` - generate C header with binary data - should be followed by variable name format for example `{{name}}_{{stage}}_{{target}}`
 - `-i, --include <path>` - additional include path for slang compiler (directory where your slang libraries are located). Can be specified multiple times.

@@ -29,6 +29,7 @@ std::vector<slang::CompilerOptionEntry> TargetSettings::GetCompilerOptions(Stage
     return options;
   case TargetFormat::OpenGL:
   case TargetFormat::OpenGLES:
+  case TargetFormat::Metal:
     options.push_back(slang::CompilerOptionEntry{slang::CompilerOptionName::VulkanBindShiftAll,
                                                  {.intValue0 = slangShiftKindConstantBuffer, .intValue1 = 0}});
     options.push_back(
