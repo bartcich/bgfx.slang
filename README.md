@@ -11,7 +11,7 @@ Currently supported backends:
 - OpenGL - through SPIR-V cross compilation and regex replacements
 - OpenGLES - through SPIR-V cross compilation and regex replacements
 
-Latest slang version tested: 2025.22.1
+Latest slang version tested: 2026.20
 
 ## Content
 
@@ -82,8 +82,14 @@ bgfx_slang_compile_shaders(
 Link the library with Cmake:
 
 ```cmake
+find_package(bgfx-slang CONFIG REQUIRED)
 target_link_libraries(your-target PUBLIC bgfx-slang::bgfx-slang)
+bgfx_slang_copy_runtime(your-target)
 ```
+
+Call `bgfx_slang_copy_runtime(target)` in the same CMake directory that creates the target, after linking it to bgfx-slang.
+It copies Slang's standard modules beside the built executable and, on Windows, its runtime DLL dependencies.
+The function runs after linking; deployment of an installed application remains the caller's responsibility.
 
 Simplest usage example:
 

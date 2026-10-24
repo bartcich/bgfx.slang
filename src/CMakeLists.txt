@@ -12,11 +12,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 
 if (BGFXSLANG_EXTERNAL_LIBS)
-    find_library(SLANG_LIB slang)
-    find_path(SLANG_INCLUDE_DIR NAMES slang.h PATH_SUFFIXES include)
-
-    target_link_libraries(${PROJECT_NAME} PUBLIC ${SLANG_LIB})
-    target_include_directories(${PROJECT_NAME} PUBLIC ${SLANG_INCLUDE_DIR})
+    find_package(slang CONFIG REQUIRED GLOBAL)
+    target_link_libraries(${PROJECT_NAME} PUBLIC slang::slang)
 
     find_package(spirv_cross_core CONFIG REQUIRED)
     find_package(spirv_cross_glsl CONFIG REQUIRED)
@@ -42,5 +39,9 @@ if (BGFXSLANG_INSTALL)
         DESTINATION share/bgfx-slang)
 
     install(FILES "${CMAKE_SOURCE_DIR}/cmake/bgfx-slang-config.cmake" DESTINATION share/bgfx-slang)
+    install(FILES
+        "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/bgfx-slang-runtime.cmake"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/CopySlangModules.cmake"
+        DESTINATION share/bgfx-slang)
 
 endif()

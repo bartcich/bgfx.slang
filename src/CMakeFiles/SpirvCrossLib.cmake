@@ -1,6 +1,6 @@
 include(FetchContent)
 
-set(SPIRV_CROSS_VERSION vulkan-sdk-1.4.335.0)
+set(SPIRV_CROSS_VERSION vulkan-sdk-1.4.363.0)
 
 
 FetchContent_Declare(

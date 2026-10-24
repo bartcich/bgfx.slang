@@ -18,6 +18,38 @@
 namespace BgfxSlang {
 
 namespace {
+
+class PlainUniformCompiler final : public spirv_cross::CompilerGLSL {
+public:
+  using spirv_cross::CompilerGLSL::CompilerGLSL;
+
+protected:
+  bool is_non_native_row_major_matrix(uint32_t id) override {
+    const auto *expression = maybe_get<spirv_cross::SPIRExpression>(id);
+    if (expression != nullptr && expression->need_transpose) {
+      return true;
+    }
+    return spirv_cross::CompilerGLSL::is_non_native_row_major_matrix(id);
+  }
+
+  void emit_instruction(const spirv_cross::Instruction &instruction) override {
+    const auto opcode = static_cast<spv::Op>(instruction.op);
+    const bool accessesMemory = opcode == spv::OpAccessChain || opcode == spv::OpInBoundsAccessChain || opcode == spv::OpLoad;
+    const bool nativeRowMajor = backend.native_row_major_matrix;
+    if (accessesMemory) {
+      const auto *variable = maybe_get_backing_variable(stream(instruction)[2]);
+      // Plain uniforms cannot preserve row_major layout qualifiers. Let SPIRV-Cross
+      // lower their matrix loads and indexing, while retaining native layouts for SSBOs.
+      if (variable != nullptr && variable->storage == spv::StorageClassUniform &&
+          has_decoration(get_type(variable->basetype).self, spv::DecorationBlock)) {
+        backend.native_row_major_matrix = false;
+      }
+    }
+    spirv_cross::CompilerGLSL::emit_instruction(instruction);
+    backend.native_row_major_matrix = nativeRowMajor;
+  }
+};
+
 constexpr std::string_view entryPointParamPrefix = "entryPointParam_";
 
 bool consumeBalancedSquareBrackets(const std::string &s, size_t &i) {
@@ -128,7 +160,7 @@ std::string_view getDefaultInputName(const Param &param) {
   return "";
 }
 
-std::string uniformDeclLine(const Uniform &uniform) {
+std::string uniformDeclLine(const Uniform &uniform, bool isArray) {
   std::string result = "uniform ";
   switch (uniform.Type) {
   case UniformType::Vec4:
@@ -145,7 +177,7 @@ std::string uniformDeclLine(const Uniform &uniform) {
   }
 
   result += uniform.Name;
-  if (uniform.Count > 1) {
+  if (isArray || uniform.Count > 1) {
     result += "[";
     result += std::to_string(uniform.Count);
     result += "]";
@@ -216,7 +248,7 @@ Status writeGlslShader(Slang::ComPtr<slang::IComponentType> &linkedProgram, Targ
 
   const auto version = static_cast<uint32_t>(std::stoul(std::string(targetProfile.Id.substr(5))));
 
-  spirv_cross::CompilerGLSL glsl(reinterpret_cast<const uint32_t *>(code->getBufferPointer()), code->getBufferSize() / 4);
+  PlainUniformCompiler glsl(reinterpret_cast<const uint32_t *>(code->getBufferPointer()), code->getBufferSize() / 4);
   spirv_cross::CompilerGLSL::Options options;
   options.version = version;
   options.es = targetProfile.Format == TargetFormat::OpenGLES;
@@ -257,9 +289,13 @@ Status writeGlslShader(Slang::ComPtr<slang::IComponentType> &linkedProgram, Targ
       const auto &memberName = glsl.get_member_name(ubo.base_type_id, i);
       const auto uniform = getUniformByName(memberName, uniforms);
 
-      unfiormsList += uniformDeclLine(uniform);
-
       auto memberType = glsl.get_type(type.member_types[i]);
+      bool isArray = !memberType.array.empty();
+      if (memberType.op == spv::OpTypeStruct && memberType.member_types.size() == 1 &&
+          glsl.get_member_name(memberType.self, 0) == "data") {
+        isArray = isArray || !glsl.get_type(memberType.member_types[0]).array.empty();
+      }
+      unfiormsList += uniformDeclLine(uniform, isArray);
       if (memberType.op == spv::OpTypeStruct) {
         // remove all .data after bufferName.memberName
         // for example globalParams.lightBuffer.data[0] to globalParams.lightBuffer[0] etc.
@@ -268,7 +304,7 @@ Status writeGlslShader(Slang::ComPtr<slang::IComponentType> &linkedProgram, Targ
 
       // just vec4 etc
       std::string pattern = bufferName + "\\.";
-      pattern += memberName + "(?![A-Za-z])";
+      pattern += memberName + "(?![A-Za-z0-9_])";
       std::regex re(pattern);
       const std::string &format = memberName;
       source = std::regex_replace(source, re, format);

@@ -35,6 +35,7 @@ constexpr uint16_t storageBufferDesrcriptor = 0x0007;
 constexpr uint16_t storageImageDescriptor = 0x0003;
 
 constexpr uint8_t version = 11;
+constexpr std::string_view glslCacheRevision = "glsl";
 
 constexpr uint32_t composeMagic(char a, char b, char c, uint8_t ver) {
   return (static_cast<uint32_t>(a)) | (static_cast<uint32_t>(b) << shift1Byte) | (static_cast<uint32_t>(c) << shift2Bytes) |
@@ -352,6 +353,10 @@ Status Compiler::LoadProgram(std::string_view code) {
       linkedProgram->getEntryPointHash(entryPoint.Idx, i, entryPointHash.writeRef());
       std::string hex = BgfxSlang::toHex(
           std::span(reinterpret_cast<const uint8_t *>(entryPointHash->getBufferPointer()), entryPointHash->getBufferSize()));
+
+      if (target.Profile.Format == TargetFormat::OpenGL || target.Profile.Format == TargetFormat::OpenGLES) {
+        hex = std::string(glslCacheRevision) + "-" + std::string(target.Profile.Id) + "-" + hex;
+      }
 
       availableEntryPoints.back().TargetHashes.emplace_back(target.Profile.Format, hex);
     }
