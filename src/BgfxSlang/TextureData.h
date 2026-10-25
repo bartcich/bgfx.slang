@@ -21,6 +21,8 @@ enum class TextureDimension : uint8_t {
   DimensionCube,
   DimensionCubeArray,
   Dimension3D,
+  Dimension2DMS,
+  Dimension2DMSArray,
 
   Unknown,
 };
@@ -30,13 +32,20 @@ enum class TextureFormat : uint16_t {
   BC2,       //!< DXT3 R5G6B5A4
   BC3,       //!< DXT5 R5G6B5A8
   BC4,       //!< LATC1/ATI1 R8
+  BC4S,
   BC5,       //!< LATC2/ATI2 RG8
+  BC5S,
   BC6H,      //!< BC6H RGB16F
+  BC6HU,
   BC7,       //!< BC7 RGB 4-7 bits per color channel, 0-8 bits alpha
   ETC1,      //!< ETC1 RGB8
   ETC2,      //!< ETC2 RGB8
   ETC2A,     //!< ETC2 RGBA8
   ETC2A1,    //!< ETC2 RGB8A1
+  EACR11,
+  EACR11S,
+  EACRG11,
+  EACRG11S,
   PTC12,     //!< PVRTC1 RGB 2BPP
   PTC14,     //!< PVRTC1 RGB 4BPP
   PTC12A,    //!< PVRTC1 RGBA 2BPP
@@ -114,6 +123,7 @@ enum class TextureFormat : uint16_t {
   BGR5A1,
   RGB5A1,
   RGB10A2,
+  RGB10A2U,
   RG11B10F,
 
   UnknownDepth, // Depth formats below.
@@ -125,6 +135,7 @@ enum class TextureFormat : uint16_t {
   D16F,
   D24F,
   D32F,
+  D32FS8,
   D0S8,
 
   Default

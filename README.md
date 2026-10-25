@@ -1,11 +1,13 @@
 # bgfx.slang - slang shader compiler for bgfx
 
 ## What is it?
+
 bgfx.slang is a library and command line tool that compiles shaders written in [slang](https://github.com/shader-slang/slang) to format compatible with the [bgfx](https://github.com/bkaradzic/bgfx).
 
 **It's still in experimental state and it might not work as expected**
 
 Currently supported backends:
+
 - DirectX
 - Vulkan
 - OpenGL - through SPIR-V cross compilation and regex replacements
@@ -43,6 +45,7 @@ This library is too young to be included in official vcpkg repo. But you can add
 Please refer to the [provided examples](examples/) for more details on how to write shaders for bgfx using slang.
 
 There are couple of important things to note:
+
 - unlike bgfx shaderc, bgfx.slang does not require you to keep the Vertex Shaders Attributes names. When necessary, it will remap them automatically (glsl and gles) based on semantics. The only exception are the instance buffer input attributes which must have `data` string in their names (also applies only to glsl and gles).
 - there is no `bgfx_shader.sh` or `bgfx_compute.sh`. Most of the differences between backends should be handled automatically by slang. This means that you need to define predefined uniforms that you use in your shader (there's no easy way to exclude unused uniforms with slang).
 - you can use user attributes to tag your entry points for easier identification in your engine code (for example you can tag your shadow pass shaders with `[Pass("CastShadow")]` attribute). See [User attributes](#user-attributes) section above for more details.
@@ -51,11 +54,13 @@ There are couple of important things to note:
 ## How to use tool
 
 Basic usage:
+
 ```
 bgfx-slang-cmd input.slang -t dx -t spirv -o path/{{target}}/{{stage}}_{{name}}.bin
 ```
 
 Options:
+
 - `-o, --output <output>` - output path template. Supported template variables: `{{name}}`, `{{filename}}`, `{{entryPoint}}`, `{{stage}}`, `{{target}}`
 - `-t, --target <target>` - target backend. Supported targets: `dx`, `spirv`, `glsl`, `gles` (or [specific version](src/BgfxSlang/Target.h#L64)). You can specify multiple targets by using this option multiple times.
 - `-v, --verbose` - enable verbose output
@@ -64,6 +69,7 @@ Options:
 - `-s, --stage <stage>` - specify shader stage to compile. Supported stages: `vs`, `fs`, `cs`. If not specified, all stages found in the input file will be compiled.
 
 ### Tool with cmake
+
 The cmake configuration provides function to combine tool execution with your project build similar to what [bgfx.cmake](https://github.com/bkaradzic/bgfx.cmake) does for bgfx shaderc.
 
 Example usage:
@@ -151,8 +157,8 @@ float4 vertexCastShadows(VertexInput input) : SV_Position {
   return mul(u_modelViewProj, float4(position, 1.0));
 };
 ```
- 
- You can access them through the library:
+
+You can access them through the library:
 
 ```cpp
 #include <bgfx-slang/Attributes.h>
@@ -162,7 +168,7 @@ float4 vertexCastShadows(VertexInput input) : SV_Position {
 for (const auto &attr : entryPoint.Attributes) {
   const auto name = attr.GetName();
   const auto argsCount = attr.GetArgumentCount();
-  
+
   for (int i = 0; i < argsCount; i++) {
     const auto argType = attr.GetArgumentType(i);
 
@@ -185,4 +191,3 @@ if (entryPoint.HasUserAttribute("Pass")) {
   const auto passName = attr->GetArgumentValueString(0);
 }
 ```
-

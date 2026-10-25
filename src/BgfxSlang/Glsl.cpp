@@ -127,29 +127,35 @@ struct DefaultParam {
 };
 
 constexpr std::array defaultInputParamNames = {
-    DefaultParam("a_position", Attrib::Position),   DefaultParam("a_normal", Attrib::Normal),
-    DefaultParam("a_tangent", Attrib::Tangent),     DefaultParam("a_bitangent", Attrib::Bitangent),
-    DefaultParam("a_color0", Attrib::Color0),       DefaultParam("a_color1", Attrib::Color1),
-    DefaultParam("a_color2", Attrib::Color2),       DefaultParam("a_color3", Attrib::Color3),
-    DefaultParam("a_indices", Attrib::Indices),     DefaultParam("a_weight", Attrib::Weight),
-    DefaultParam("a_texcoord0", Attrib::TexCoord0), DefaultParam("a_texcoord1", Attrib::TexCoord1),
-    DefaultParam("a_texcoord2", Attrib::TexCoord2), DefaultParam("a_texcoord3", Attrib::TexCoord3),
-    DefaultParam("a_texcoord4", Attrib::TexCoord4), DefaultParam("a_texcoord5", Attrib::TexCoord5),
-    DefaultParam("a_texcoord6", Attrib::TexCoord6), DefaultParam("a_texcoord7", Attrib::TexCoord7),
+    DefaultParam("a_position", Attrib::Position),     DefaultParam("a_normal", Attrib::Normal),
+    DefaultParam("a_tangent", Attrib::Tangent),       DefaultParam("a_bitangent", Attrib::Bitangent),
+    DefaultParam("a_color0", Attrib::Color0),         DefaultParam("a_color1", Attrib::Color1),
+    DefaultParam("a_color2", Attrib::Color2),         DefaultParam("a_color3", Attrib::Color3),
+    DefaultParam("a_indices", Attrib::Indices),       DefaultParam("a_weight", Attrib::Weight),
+    DefaultParam("a_texcoord0", Attrib::TexCoord0),   DefaultParam("a_texcoord1", Attrib::TexCoord1),
+    DefaultParam("a_texcoord2", Attrib::TexCoord2),   DefaultParam("a_texcoord3", Attrib::TexCoord3),
+    DefaultParam("a_texcoord4", Attrib::TexCoord4),   DefaultParam("a_texcoord5", Attrib::TexCoord5),
+    DefaultParam("a_texcoord6", Attrib::TexCoord6),   DefaultParam("a_texcoord7", Attrib::TexCoord7),
+    DefaultParam("a_texcoord8", Attrib::TexCoord8),   DefaultParam("a_texcoord9", Attrib::TexCoord9),
+    DefaultParam("a_texcoord10", Attrib::TexCoord10), DefaultParam("a_texcoord11", Attrib::TexCoord11),
+    DefaultParam("a_texcoord12", Attrib::TexCoord12), DefaultParam("a_texcoord13", Attrib::TexCoord13),
+    DefaultParam("a_texcoord14", Attrib::TexCoord14), DefaultParam("a_texcoord15", Attrib::TexCoord15),
 };
 
 constexpr std::array defaultInputInstanceBufferParamNames = {
-    DefaultParam("i_data0", Attrib::TexCoord7), DefaultParam("i_data1", Attrib::TexCoord6), DefaultParam("i_data2", Attrib::TexCoord5),
-    DefaultParam("i_data3", Attrib::TexCoord4), DefaultParam("i_data4", Attrib::TexCoord3),
+    DefaultParam("i_data0", Attrib::InstanceData0),   DefaultParam("i_data1", Attrib::InstanceData1),
+    DefaultParam("i_data2", Attrib::InstanceData2),   DefaultParam("i_data3", Attrib::InstanceData3),
+    DefaultParam("i_data4", Attrib::InstanceData4),   DefaultParam("i_data5", Attrib::InstanceData5),
+    DefaultParam("i_data6", Attrib::InstanceData6),   DefaultParam("i_data7", Attrib::InstanceData7),
+    DefaultParam("i_data8", Attrib::InstanceData8),   DefaultParam("i_data9", Attrib::InstanceData9),
+    DefaultParam("i_data10", Attrib::InstanceData10), DefaultParam("i_data11", Attrib::InstanceData11),
+    DefaultParam("i_data12", Attrib::InstanceData12), DefaultParam("i_data13", Attrib::InstanceData13),
+    DefaultParam("i_data14", Attrib::InstanceData14), DefaultParam("i_data15", Attrib::InstanceData15),
 };
 
 std::string_view getDefaultInputName(const Param &param) {
-  if (param.Attr >= Attrib::TexCoord3 && param.Name.find("data") != std::string::npos) {
-    for (const auto &defaultParam : defaultInputInstanceBufferParamNames) {
-      if (defaultParam.Attr == param.Attr) {
-        return defaultParam.Name;
-      }
-    }
+  if (isInstanceAttrib(param.Attr)) {
+    return defaultInputInstanceBufferParamNames.at(static_cast<size_t>(param.Attr) - static_cast<size_t>(Attrib::InstanceData0)).Name;
   }
 
   for (const auto &defaultParam : defaultInputParamNames) {
@@ -291,8 +297,7 @@ Status writeGlslShader(Slang::ComPtr<slang::IComponentType> &linkedProgram, Targ
 
       auto memberType = glsl.get_type(type.member_types[i]);
       bool isArray = !memberType.array.empty();
-      if (memberType.op == spv::OpTypeStruct && memberType.member_types.size() == 1 &&
-          glsl.get_member_name(memberType.self, 0) == "data") {
+      if (memberType.op == spv::OpTypeStruct && memberType.member_types.size() == 1 && glsl.get_member_name(memberType.self, 0) == "data") {
         isArray = isArray || !glsl.get_type(memberType.member_types[0]).array.empty();
       }
       unfiormsList += uniformDeclLine(uniform, isArray);

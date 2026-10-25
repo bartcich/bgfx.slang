@@ -33,6 +33,10 @@ TextureDimension convertTextureDimension(slang::TypeReflection *type) {
   case SLANG_TEXTURE_2D: // original bgfx compiler vulkan compiler reports simple BgfxSampler as array so we're doing same here
   case SLANG_TEXTURE_2D_ARRAY:
     return TextureDimension::Dimension2DArray;
+  case SLANG_TEXTURE_2D_MULTISAMPLE:
+    return TextureDimension::Dimension2DMS;
+  case SLANG_TEXTURE_2D_MULTISAMPLE_ARRAY:
+    return TextureDimension::Dimension2DMSArray;
   case SLANG_TEXTURE_CUBE:
     return TextureDimension::DimensionCube;
   case SLANG_TEXTURE_CUBE_ARRAY:

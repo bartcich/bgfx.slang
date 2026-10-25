@@ -34,7 +34,7 @@ constexpr uint8_t kUniformReadOnlyBit = 0x40;
 constexpr uint16_t storageBufferDesrcriptor = 0x0007;
 constexpr uint16_t storageImageDescriptor = 0x0003;
 
-constexpr uint8_t version = 11;
+constexpr uint8_t version = 13;
 constexpr std::string_view glslCacheRevision = "glsl";
 
 constexpr uint32_t composeMagic(char a, char b, char c, uint8_t ver) {
@@ -72,11 +72,16 @@ Attrib semanticNameToAttrib(std::string_view name, uint32_t index) {
   if (name == "BITANGENT") {
     return Attrib::Bitangent;
   }
-  if (name == "COLOR") {
+  if (name == "COLOR" && index < 4) {
     return static_cast<Attrib>(static_cast<int>(Attrib::Color0) + index);
   }
   if (name == "TEXCOORD") {
-    return static_cast<Attrib>(static_cast<int>(Attrib::TexCoord0) + index);
+    if (index < 16) {
+      return static_cast<Attrib>(static_cast<int>(Attrib::TexCoord0) + index);
+    }
+    if (index < 32) {
+      return static_cast<Attrib>(static_cast<int>(Attrib::InstanceData0) + 31 - index);
+    }
   }
   if (name.starts_with("SV_")) {
     return Attrib::Internal;
@@ -176,10 +181,21 @@ bool isUsedUniform(slang::IMetadata *entryPointMetadata, TargetProfile target, S
 
 bool isSkippableUniform(slang::TypeReflection *type) { return type->getKind() == slang::TypeReflection::Kind::SamplerState; }
 
+struct RawBindings {
+  uint32_t Srv = 0;
+  uint32_t Uav = 0;
+};
+
+bool isBufferType(slang::TypeReflection *type) {
+  return type->getKind() == slang::TypeReflection::Kind::Resource &&
+         (type->getResourceShape() == SlangResourceShape::SLANG_STRUCTURED_BUFFER ||
+          type->getResourceShape() == SlangResourceShape::SLANG_BYTE_ADDRESS_BUFFER);
+}
+
 UniformType convertUniformType(slang::TypeReflection *type, bool isCompute) {
   switch (type->getKind()) {
   case slang::TypeReflection::Kind::Resource:
-    if (isCompute || type->getResourceShape() == SlangResourceShape::SLANG_STRUCTURED_BUFFER) {
+    if (isCompute || isBufferType(type)) {
       return type->getResourceAccess() == SlangResourceAccess::SLANG_RESOURCE_ACCESS_READ
                  ? static_cast<UniformType>(kUniformReadOnlyBit | static_cast<uint8_t>(UniformType::End))
                  : UniformType::End;
@@ -214,7 +230,7 @@ Status verifyUniformLayout(slang::TypeLayoutReflection *scopeTypeLayout, slang::
 }
 
 Status getUniforms(slang::ProgramLayout *programLayout, slang::IMetadata *entryPointMetadata, TargetProfile target, SlangStage stage,
-                   std::vector<Uniform> &uniforms, uint16_t &uniformBufferSize) {
+                   std::vector<Uniform> &uniforms, uint16_t &uniformBufferSize, RawBindings &rawBindings) {
   auto *globalVarLayout = programLayout->getGlobalParamsVarLayout();
   auto *scopeTypeLayout = globalVarLayout->getTypeLayout();
 
@@ -250,10 +266,23 @@ Status getUniforms(slang::ProgramLayout *programLayout, slang::IMetadata *entryP
       return Status{StatusCode::Error, "Unsupported uniform type for param " + std::string(param->getName())};
     }
 
-    bool isBuffer = elementType->getKind() == slang::TypeReflection::Kind::Resource &&
-                    elementType->getResourceShape() == SlangResourceShape::SLANG_STRUCTURED_BUFFER;
+    bool isBuffer = isBufferType(elementType);
     bool isSampler = convertedType == UniformType::Sampler && !isCompute;
     bool isStorageImage = elementType->getKind() == slang::TypeReflection::Kind::Resource && !isBuffer && !isCompute;
+
+    if (target.Format == TargetFormat::DirectX && isBuffer &&
+        elementType->getResourceShape() == SlangResourceShape::SLANG_BYTE_ADDRESS_BUFFER) {
+      const auto binding = param->getBindingIndex();
+      const auto count = isArray ? paramType->getElementCount() : 1;
+      constexpr uint32_t maxRawBindings = 32;
+      if (binding >= maxRawBindings || count > maxRawBindings - binding) {
+        return Status{StatusCode::Error, "Raw buffer binding exceeds bgfx's 32-slot mask: " + std::string(param->getName())};
+      }
+      auto &mask = elementType->getResourceAccess() == SlangResourceAccess::SLANG_RESOURCE_ACCESS_READ ? rawBindings.Srv : rawBindings.Uav;
+      for (uint32_t index = 0; index < count; ++index) {
+        mask |= uint32_t{1} << (binding + index);
+      }
+    }
 
     uniform.Name = param->getName();
     uniform.Type = convertedType;
@@ -572,7 +601,8 @@ Status Compiler::Compile(int64_t entryPointIdx, int64_t targetIdx, IWriter &writ
 
   std::vector<Uniform> uniforms;
   uint16_t uniformBufferSize = 0;
-  if (auto status = getUniforms(layout, entryPointMetadata, target, stage, uniforms, uniformBufferSize); !status.IsOk()) {
+  RawBindings rawBindings;
+  if (auto status = getUniforms(layout, entryPointMetadata, target, stage, uniforms, uniformBufferSize, rawBindings); !status.IsOk()) {
     return status;
   }
 
@@ -615,6 +645,8 @@ Status Compiler::Compile(int64_t entryPointIdx, int64_t targetIdx, IWriter &writ
   auto hashOutput = magic == magicVsh ? hashParams(outputParams) : 0;
   writer.Write(hashInput);
   writer.Write(hashOutput);
+  writer.Write(rawBindings.Srv);
+  writer.Write(rawBindings.Uav);
 
   writer.Write<uint16_t>(uniforms.size());
 

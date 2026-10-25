@@ -74,12 +74,49 @@ enum class Attrib : uint8_t {
   TexCoord5,
   TexCoord6,
   TexCoord7,
+  TexCoord8,
+  TexCoord9,
+  TexCoord10,
+  TexCoord11,
+  TexCoord12,
+  TexCoord13,
+  TexCoord14,
+  TexCoord15,
+
+  InstanceData0,
+  InstanceData1,
+  InstanceData2,
+  InstanceData3,
+  InstanceData4,
+  InstanceData5,
+  InstanceData6,
+  InstanceData7,
+  InstanceData8,
+  InstanceData9,
+  InstanceData10,
+  InstanceData11,
+  InstanceData12,
+  InstanceData13,
+  InstanceData14,
+  InstanceData15,
 
   Unknown,
   Internal
 };
 
+inline bool isInstanceAttrib(Attrib attr) { return attr >= Attrib::InstanceData0 && attr <= Attrib::InstanceData15; }
+
 inline std::string_view attribToString(Attrib attr) {
+  constexpr std::array instanceSemantics = {
+      std::string_view("TEXCOORD31"), std::string_view("TEXCOORD30"), std::string_view("TEXCOORD29"), std::string_view("TEXCOORD28"),
+      std::string_view("TEXCOORD27"), std::string_view("TEXCOORD26"), std::string_view("TEXCOORD25"), std::string_view("TEXCOORD24"),
+      std::string_view("TEXCOORD23"), std::string_view("TEXCOORD22"), std::string_view("TEXCOORD21"), std::string_view("TEXCOORD20"),
+      std::string_view("TEXCOORD19"), std::string_view("TEXCOORD18"), std::string_view("TEXCOORD17"), std::string_view("TEXCOORD16"),
+  };
+  if (isInstanceAttrib(attr)) {
+    return instanceSemantics.at(static_cast<size_t>(attr) - static_cast<size_t>(Attrib::InstanceData0));
+  }
+
   switch (attr) {
   case Attrib::Position:
     return "POSITION";
@@ -117,6 +154,22 @@ inline std::string_view attribToString(Attrib attr) {
     return "TEXCOORD6";
   case Attrib::TexCoord7:
     return "TEXCOORD7";
+  case Attrib::TexCoord8:
+    return "TEXCOORD8";
+  case Attrib::TexCoord9:
+    return "TEXCOORD9";
+  case Attrib::TexCoord10:
+    return "TEXCOORD10";
+  case Attrib::TexCoord11:
+    return "TEXCOORD11";
+  case Attrib::TexCoord12:
+    return "TEXCOORD12";
+  case Attrib::TexCoord13:
+    return "TEXCOORD13";
+  case Attrib::TexCoord14:
+    return "TEXCOORD14";
+  case Attrib::TexCoord15:
+    return "TEXCOORD15";
   default:
     return "unknown";
   }
@@ -133,31 +186,20 @@ struct AttribToId {
   uint16_t Id;
 };
 
-constexpr std::array<AttribToId, 23> attribToIdMap = {{
-    {Attrib::Position, 0x0001},
-    {Attrib::Normal, 0x0002},
-    {Attrib::Tangent, 0x0003},
-    {Attrib::Bitangent, 0x0004},
-    {Attrib::Color0, 0x0005},
-    {Attrib::Color1, 0x0006},
-    {Attrib::Color2, 0x0018},
-    {Attrib::Color3, 0x0019},
-    {Attrib::Indices, 0x000e},
-    {Attrib::Weight, 0x000f},
-    {Attrib::TexCoord0, 0x0010},
-    {Attrib::TexCoord1, 0x0011},
-    {Attrib::TexCoord2, 0x0012},
-    {Attrib::TexCoord3, 0x0013},
-    {Attrib::TexCoord4, 0x0014},
-    {Attrib::TexCoord5, 0x0015},
-    {Attrib::TexCoord6, 0x0016},
-    {Attrib::TexCoord7, 0x0017},
+constexpr std::array<AttribToId, 26> attribToIdMap = {{
+    {Attrib::Position, 0x0001},   {Attrib::Normal, 0x0002},     {Attrib::Tangent, 0x0003},    {Attrib::Bitangent, 0x0004},
+    {Attrib::Color0, 0x0005},     {Attrib::Color1, 0x0006},     {Attrib::Color2, 0x0018},     {Attrib::Color3, 0x0019},
+    {Attrib::Indices, 0x000e},    {Attrib::Weight, 0x000f},     {Attrib::TexCoord0, 0x0010},  {Attrib::TexCoord1, 0x0011},
+    {Attrib::TexCoord2, 0x0012},  {Attrib::TexCoord3, 0x0013},  {Attrib::TexCoord4, 0x0014},  {Attrib::TexCoord5, 0x0015},
+    {Attrib::TexCoord6, 0x0016},  {Attrib::TexCoord7, 0x0017},  {Attrib::TexCoord8, 0x001a},  {Attrib::TexCoord9, 0x001b},
+    {Attrib::TexCoord10, 0x001c}, {Attrib::TexCoord11, 0x001d}, {Attrib::TexCoord12, 0x001e}, {Attrib::TexCoord13, 0x001f},
+    {Attrib::TexCoord14, 0x0020}, {Attrib::TexCoord15, 0x0021},
 }};
 
 inline uint16_t attribToId(Attrib attr) { return attribToIdMap.at(static_cast<size_t>(attr)).Id; }
 
-inline uint16_t paramToId(const Param &param, TargetFormat target) {
-  if (target == TargetFormat::SpirV && param.Name.find("data") != std::string::npos) {
+inline uint16_t paramToId(const Param &param, TargetFormat) {
+  if (isInstanceAttrib(param.Attr)) {
     return std::numeric_limits<uint16_t>::max();
   }
   return attribToId(param.Attr);
